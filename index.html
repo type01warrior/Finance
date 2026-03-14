@@ -63,6 +63,41 @@
         .tab-btn[data-tab="overview"].active   { background: linear-gradient(135deg,#f97316,#ea580c); }
         .tab-btn[data-tab="bank-cards"].active { background: linear-gradient(135deg,#a78bfa,#7c3aed); }
         .tab-btn[data-tab="emi-calc"].active   { background: linear-gradient(135deg,#f59e0b,#d97706); }
+        .tab-btn[data-tab="personal"].active   { background: linear-gradient(135deg,#0d9488,#0f766e); }
+
+        /* Daily tab filter chips */
+        .acc-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+        .filter-chip { padding:5px 12px; border-radius:20px; font-size:11px; font-weight:600; border:1px solid var(--border-color); background:var(--input-bg); color:var(--text-secondary); cursor:pointer; transition:0.2s; white-space:nowrap; }
+        .filter-chip.active { background:var(--accent-blue); color:#fff; border-color:var(--accent-blue); }
+        .filter-chip.cc-chip.active { background:linear-gradient(135deg,#a78bfa,#7c3aed); border-color:#a78bfa; }
+        .sub-filter-bar { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; padding:10px 12px; background:var(--input-bg); border-radius:10px; border:1px solid var(--border-color); animation:fadeIn 0.2s ease; }
+
+        /* Personal tab */
+        .personal-container { display:none; flex-direction:column; }
+        .personal-card { background:var(--card-bg); border:1px solid var(--border-color); border-radius:12px; padding:16px; margin-bottom:10px; position:relative; overflow:hidden; }
+        .personal-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:12px 12px 0 0; }
+        .personal-card.sent::before { background:linear-gradient(90deg,#ef4444,#f97316); }
+        .personal-card.received::before { background:linear-gradient(90deg,#22c55e,#16a34a); }
+        .personal-card.returned { opacity:0.6; }
+        .personal-card.returned::before { background:linear-gradient(90deg,#555,#777); }
+        .personal-amount { font-size:17px; font-weight:700; }
+        .personal-amount.sent { color:var(--accent-red); }
+        .personal-amount.received { color:var(--accent-green); }
+        .personal-source-badge { display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:600; padding:3px 8px; border-radius:5px; }
+        .src-phonepe  { background:rgba(128,0,255,0.12); color:#8000ff; }
+        .src-googlepay{ background:rgba(66,133,244,0.12); color:#4285f4; }
+        .src-paytm    { background:rgba(0,149,255,0.12);  color:#0095ff; }
+        .src-cash     { background:rgba(34,197,94,0.12);  color:#22c55e; }
+        .return-countdown { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:700; padding:4px 9px; border-radius:6px; margin-top:6px; }
+        .rc-overdue { background:rgba(239,68,68,0.12); color:#ef4444; }
+        .rc-today   { background:rgba(239,68,68,0.12); color:#ef4444; }
+        .rc-soon    { background:rgba(249,115,22,0.12); color:#f97316; }
+        .rc-normal  { background:rgba(91,141,239,0.12); color:#5b8def; }
+        .rc-done    { background:rgba(34,197,94,0.12);  color:#22c55e; }
+        .p-action-btn { padding:6px 14px; border-radius:8px; font-size:11px; font-weight:700; border:none; cursor:pointer; font-family:'Lexend',sans-serif; transition:0.2s; }
+        .p-mark-returned { background:rgba(34,197,94,0.1); color:var(--accent-green); border:1px solid var(--accent-green); }
+        .p-delete { background:rgba(239,68,68,0.1); color:var(--accent-red); border:1px solid var(--accent-red); }
+        .p-edit { background:var(--input-bg); color:var(--text-primary); border:1px solid var(--border-color); }
         #bc-subtabs { background: var(--card-bg) !important; }
         #bc-subtabs .tab-btn { color: var(--text-secondary); background: transparent; }
         #bc-subtabs .tab-btn.active { background: var(--accent-blue); color: #fff; box-shadow: 0 2px 8px rgba(91,141,239,0.4); }
@@ -376,6 +411,7 @@
         <button class="tab-btn" data-tab="overview" onclick="handleTabClick('overview')">Overview</button>
         <button class="tab-btn" data-tab="bank-cards" onclick="handleTabClick('bank-cards')">Bank & Cards</button>
         <button class="tab-btn" data-tab="emi-calc" onclick="handleTabClick('emi-calc')">Calculator</button>
+        <button class="tab-btn" data-tab="personal" onclick="handleTabClick('personal')">Personal</button>
     </div>
 
     <div id="daily" class="daily-container" style="display: flex;">
@@ -384,9 +420,20 @@
             <div class="net-worth-amt" id="totalAvailableBalance">₹0</div>
         </div>
 
-        <div class="section-header">
+        <div class="section-header" style="margin-bottom:8px;">
             <h2>My Accounts</h2>
-            <button class="add-btn-text" onclick="openAccountModal()">+ Add Account</button>
+            <div style="position:relative;">
+                <button id="accPickerBtn" onclick="toggleAccPicker()" style="background:var(--input-bg);border:1px solid var(--border-color);color:var(--text-primary);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;font-family:'Lexend',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;">
+                    <i class="fa-solid fa-sliders" style="font-size:12px;"></i> Filter
+                </button>
+                <div id="accPickerMenu" style="display:none;position:absolute;right:0;top:calc(100% + 6px);background:var(--card-bg);border:1px solid var(--border-color);border-radius:10px;min-width:200px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,0.3);overflow:hidden;max-height:280px;overflow-y:auto;"></div>
+            </div>
+        </div>
+        <!-- Account filter bar -->
+        <div class="acc-filter-bar" id="accFilterBar">
+            <span class="filter-chip active" data-filter="all" onclick="setAccFilter('all')">All</span>
+            <span class="filter-chip" data-filter="bank" onclick="setAccFilter('bank')">🏦 Banks</span>
+            <span class="filter-chip cc-chip" data-filter="cc" onclick="setAccFilter('cc')">💳 Cards</span>
         </div>
         
         <div class="acc-scroller" id="account-scroller"></div>
@@ -398,6 +445,17 @@
                 <button class="add-btn" onclick="openTxnModal()"><i class="fa-solid fa-plus"></i></button>
             </div>
         </div>
+
+        <!-- SMS Transaction Notification Banner -->
+        <div id="sms-txn-banner" style="display:none;background:linear-gradient(135deg,#5b8def22,#a78bfa22);border:1px solid var(--accent-blue);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+            <div style="font-size:13px;font-weight:700;margin-bottom:6px;">📱 Bank Transaction Detected</div>
+            <div id="sms-txn-details" style="font-size:12px;color:var(--text-secondary);margin-bottom:10px;"></div>
+            <div style="display:flex;gap:8px;">
+                <button onclick="acceptSmsTxn()" class="save-btn" style="flex:1;padding:10px;font-size:12px;background:var(--accent-green);">✅ Add Transaction</button>
+                <button onclick="dismissSmsTxn()" style="flex:1;padding:10px;font-size:12px;background:var(--input-bg);border:1px solid var(--border-color);border-radius:8px;color:var(--text-primary);font-family:'Lexend',sans-serif;cursor:pointer;">✕ Dismiss</button>
+            </div>
+        </div>
+
         <div id="txn-list"></div>
     </div>
 
@@ -532,6 +590,33 @@
         </div>
     </div>
 
+    <!-- PERSONAL TAB -->
+    <div id="personal" class="personal-container">
+        <!-- Sub-tabs -->
+        <div class="tabs" style="background:var(--input-bg);border:1px solid var(--border-color);border-radius:10px;padding:4px;gap:6px;margin-bottom:18px;" id="personal-subtabs">
+            <button class="tab-btn active" id="pt-sent" onclick="switchPersonalTab('sent')" style="font-size:12px;">💸 Sent</button>
+            <button class="tab-btn" id="pt-received" onclick="switchPersonalTab('received')" style="font-size:12px;">💰 Received</button>
+        </div>
+
+        <!-- Sent sub-panel -->
+        <div id="personal-sent" style="display:flex;flex-direction:column;">
+            <div class="section-header">
+                <h2 style="font-size:16px;">💸 Money Sent</h2>
+                <button class="add-btn" onclick="openPersonalModal('sent')"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="sent-list"><p style="text-align:center;color:var(--text-secondary);padding:30px 0;font-size:13px;">No sent transactions yet.</p></div>
+        </div>
+
+        <!-- Received sub-panel -->
+        <div id="personal-received" style="display:none;flex-direction:column;">
+            <div class="section-header">
+                <h2 style="font-size:16px;">💰 Money Received</h2>
+                <button class="add-btn" onclick="openPersonalModal('received')"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="received-list"><p style="text-align:center;color:var(--text-secondary);padding:30px 0;font-size:13px;">No received transactions yet.</p></div>
+        </div>
+    </div>
+
     <div class="app-footer">
         <div class="contact-heading">Contact The Developer</div>
         <div class="social-icons">
@@ -622,7 +707,7 @@
         </div>
         <div class="type-toggle">
             <div class="type-btn active exp" id="btn-expense" onclick="setTxnType('Expense')">Expense</div>
-            <div class="type-btn" id="btn-income" onclick="setTxnType('Income')">Income</div>
+            <div class="type-btn inc" id="btn-income" onclick="setTxnType('Income')">Income</div>
         </div>
         <form id="txnForm" onsubmit="saveTransaction(event)">
             <input type="hidden" id="txnType" value="Expense">
@@ -911,6 +996,81 @@
     </div>
 </div>
 
+<!-- PERSONAL TRANSACTION MODAL -->
+<div class="modal" id="personalModal">
+    <div class="modal-content" style="max-width:420px;">
+        <div class="modal-header">
+            <h3 id="personalModalTitle" style="font-size:17px;">Add Transaction</h3>
+            <button class="close-btn" onclick="document.getElementById('personalModal').style.display='none'"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <form id="personalForm" onsubmit="savePersonalTxn(event)">
+            <input type="hidden" id="personalType" value="sent">
+            <input type="hidden" id="personalEditId" value="">
+
+            <!-- To / From -->
+            <div class="form-group">
+                <label id="personalPersonLabel">To (Recipient)</label>
+                <input type="text" id="personalPerson" placeholder="e.g. Sikandar Bhai" required>
+            </div>
+            <!-- Amount -->
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="personalAmount" step="any" placeholder="e.g. 5000" required>
+            </div>
+            <!-- Source -->
+            <div class="form-group">
+                <label>Source</label>
+                <input type="hidden" id="personalSource" value="PhonePe">
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;" id="sourceGrid">
+                    <div class="src-option active" data-src="PhonePe" onclick="selectSource('PhonePe')" style="border:2px solid var(--accent-blue);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;background:rgba(91,141,239,0.08);transition:0.2s;">
+                        <svg width="28" height="28" viewBox="0 0 100 100" style="display:block;margin:0 auto 4px;"><rect width="100" height="100" rx="20" fill="#5f259f"/><path d="M28 72V28h22c10 0 17 6 17 15 0 6-3 11-8 13l9 16H57l-8-14h-9v14H28zm12-22h10c4 0 6-2 6-5s-2-5-6-5H40v10z" fill="#fff"/></svg>
+                        <div style="font-size:10px;font-weight:600;color:var(--text-primary);">PhonePe</div>
+                    </div>
+                    <div class="src-option" data-src="GPay" onclick="selectSource('GPay')" style="border:2px solid var(--border-color);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;background:transparent;transition:0.2s;">
+                        <svg width="28" height="28" viewBox="0 0 100 100" style="display:block;margin:0 auto 4px;"><rect width="100" height="100" rx="20" fill="#fff"/><text x="50" y="62" text-anchor="middle" font-size="44" font-family="Arial" font-weight="700"><tspan fill="#4285F4">G</tspan></text></svg>
+                        <div style="font-size:10px;font-weight:600;color:var(--text-primary);">GPay</div>
+                    </div>
+                    <div class="src-option" data-src="Paytm" onclick="selectSource('Paytm')" style="border:2px solid var(--border-color);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;background:transparent;transition:0.2s;">
+                        <svg width="28" height="28" viewBox="0 0 100 100" style="display:block;margin:0 auto 4px;"><rect width="100" height="100" rx="20" fill="#002970"/><rect x="18" y="36" width="64" height="28" rx="5" fill="#00BAF2"/><text x="50" y="58" text-anchor="middle" font-size="20" font-family="Arial" font-weight="900" fill="#002970">paytm</text></svg>
+                        <div style="font-size:10px;font-weight:600;color:var(--text-primary);">Paytm</div>
+                    </div>
+                    <div class="src-option" data-src="Cash" onclick="selectSource('Cash')" style="border:2px solid var(--border-color);border-radius:10px;padding:10px 6px;text-align:center;cursor:pointer;background:transparent;transition:0.2s;">
+                        <svg width="28" height="28" viewBox="0 0 100 100" style="display:block;margin:0 auto 4px;"><rect width="100" height="100" rx="20" fill="#22c55e"/><text x="50" y="65" text-anchor="middle" font-size="46" fill="#fff">₹</text></svg>
+                        <div style="font-size:10px;font-weight:600;color:var(--text-primary);">Cash</div>
+                    </div>
+                </div>
+            </div>
+            <!-- Purpose -->
+            <div class="form-group">
+                <label>Purpose</label>
+                <input type="text" id="personalPurpose" placeholder="e.g. School fees, Emergency" required>
+            </div>
+            <!-- Date & Time sent -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="personalDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Time</label>
+                    <input type="time" id="personalTime">
+                </div>
+            </div>
+            <!-- Return date -->
+            <div class="form-group">
+                <label id="personalReturnLabel">Will Return On</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="date" id="personalReturnDate" style="flex:1;">
+                    <input type="time" id="personalReturnTime" style="flex:0 0 110px;">
+                </div>
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">Leave blank if no return expected</div>
+            </div>
+
+            <button type="submit" class="save-btn" id="personalSaveBtn">Save</button>
+        </form>
+    </div>
+</div>
+
 <script>
     // ══════════════════════════════════════════════════
     // ★ FIREBASE CONFIG — Replace with YOUR project values
@@ -939,12 +1099,17 @@
     let syncTimer   = null;
 
     // ── Databases (in-memory, mirrored to Firestore) ──
-    let emiDatabase  = [];
-    let accDatabase  = [];
-    let txnDatabase  = [];
-    let bankDatabase = JSON.parse(localStorage.getItem('type01_finance_banks')) || [];
-    let ccDatabase   = JSON.parse(localStorage.getItem('type01_finance_ccs'))   || [];
-    let appSettings  = { startMonth: 0, startYear: 2026, endMonth: 11, endYear: 2030 };
+    let emiDatabase      = [];
+    let accDatabase      = [];
+    let txnDatabase      = [];
+    let bankDatabase     = JSON.parse(localStorage.getItem('type01_finance_banks'))    || [];
+    let ccDatabase       = JSON.parse(localStorage.getItem('type01_finance_ccs'))      || [];
+    let personalDatabase = JSON.parse(localStorage.getItem('type01_finance_personal')) || [];
+    let appSettings      = { startMonth: 0, startYear: 2026, endMonth: 11, endYear: 2030 };
+
+    // ── Account filter state ──
+    let _accFilter    = 'all'; // 'all' | 'bank' | 'cc'
+    let _accSubFilter = '';    // owner name or ''
 
     // ── Google Sign-In ──
     function switchAuthTab(tab) {
@@ -983,28 +1148,25 @@
     function openUpdateBalForCC(ccId) {
         var c = ccDatabase.find(function(x) { return x.id == ccId; });
         if (!c) return;
-        // Use same smart matching: prioritise Credit Card type accounts
-        var bestAcc = null, bestScore = 0;
-        accDatabase.forEach(function(a) {
-            var an = a.name.toLowerCase();
-            var bn = (c.bankname || '').toLowerCase();
-            var vn = (c.name || '').toLowerCase();
-            var score = 0;
-            if (an === bn) score = 10;
-            else if (an.includes(bn) || bn.includes(an)) score = 8;
-            else if (vn && (an.includes(vn) || vn.includes(an))) score = 6;
-            else {
-                var fw = bn.replace(/bank|finance|card/g,'').trim().split(' ')[0];
-                if (fw && fw.length > 2 && an.includes(fw)) score = 4;
-            }
-            if (score > 0) {
-                if (a.type === 'Credit Card') score += 5;
-                if (score > bestScore) { bestScore = score; bestAcc = a; }
-            }
-        });
+        // Find by exact linkedCCId first (cards added via new flow)
+        var bestAcc = accDatabase.find(function(a) { return a.linkedCCId === c.id; });
         if (!bestAcc) {
-            // Create a new account entry linked to this CC
-            bestAcc = { id: Date.now(), name: c.bankname + (c.name ? ' ' + c.name : ''), type: 'Credit Card', initialBalance: 0 };
+            // Fallback: scored name match for legacy data
+            var bestScore = 0;
+            accDatabase.forEach(function(a) {
+                var an = a.name.toLowerCase(), bn = (c.bankname||'').toLowerCase(), vn = (c.name||'').toLowerCase();
+                var score = 0;
+                if (an === bn) score = 10;
+                else if (an.includes(bn) || bn.includes(an)) score = 8;
+                else if (vn && (an.includes(vn) || vn.includes(an))) score = 6;
+                else { var fw = bn.replace(/bank|finance|card/g,'').trim().split(' ')[0]; if (fw && fw.length > 2 && an.includes(fw)) score = 4; }
+                if (score > 0) { if (a.type === 'Credit Card') score += 5; if (score > bestScore) { bestScore = score; bestAcc = a; } }
+            });
+        }
+        if (!bestAcc) {
+            // Create dedicated account for this CC
+            var name = c.bankname + (c.name ? ' ' + c.name : '') + (c.owner ? ' (' + c.owner + ')' : '');
+            bestAcc = { id: Date.now(), name: name, type: 'Credit Card', initialBalance: 0, linkedCCId: c.id };
             accDatabase.push(bestAcc);
             saveToCloud();
         }
@@ -1126,36 +1288,40 @@
             const doc = await db.collection('users').doc(currentUser.uid).get();
             if (doc.exists) {
                 const d = doc.data();
-                emiDatabase  = d.emis     || [];
-                accDatabase  = d.accounts || [];
-                txnDatabase  = d.txns     || [];
-                appSettings  = d.settings || appSettings;
-                bankDatabase = d.banks    || [];
-                ccDatabase   = d.ccs      || [];
+                emiDatabase      = d.emis     || [];
+                accDatabase      = d.accounts || [];
+                txnDatabase      = d.txns     || [];
+                appSettings      = d.settings || appSettings;
+                bankDatabase     = d.banks    || [];
+                ccDatabase       = d.ccs      || [];
+                personalDatabase = d.personal || [];
                 localStorage.setItem('type01_finance_db_v6',    JSON.stringify(emiDatabase));
                 localStorage.setItem('type01_finance_accs',     JSON.stringify(accDatabase));
                 localStorage.setItem('type01_finance_txns',     JSON.stringify(txnDatabase));
                 localStorage.setItem('type01_finance_settings', JSON.stringify(appSettings));
                 localStorage.setItem('type01_finance_banks',    JSON.stringify(bankDatabase));
                 localStorage.setItem('type01_finance_ccs',      JSON.stringify(ccDatabase));
+                localStorage.setItem('type01_finance_personal', JSON.stringify(personalDatabase));
             } else {
-                emiDatabase  = JSON.parse(localStorage.getItem('type01_finance_db_v6'))    || [];
-                accDatabase  = JSON.parse(localStorage.getItem('type01_finance_accs'))     || [];
-                txnDatabase  = JSON.parse(localStorage.getItem('type01_finance_txns'))     || [];
-                appSettings  = JSON.parse(localStorage.getItem('type01_finance_settings')) || appSettings;
-                bankDatabase = JSON.parse(localStorage.getItem('type01_finance_banks'))    || [];
-                ccDatabase   = JSON.parse(localStorage.getItem('type01_finance_ccs'))      || [];
+                emiDatabase      = JSON.parse(localStorage.getItem('type01_finance_db_v6'))    || [];
+                accDatabase      = JSON.parse(localStorage.getItem('type01_finance_accs'))     || [];
+                txnDatabase      = JSON.parse(localStorage.getItem('type01_finance_txns'))     || [];
+                appSettings      = JSON.parse(localStorage.getItem('type01_finance_settings')) || appSettings;
+                bankDatabase     = JSON.parse(localStorage.getItem('type01_finance_banks'))    || [];
+                ccDatabase       = JSON.parse(localStorage.getItem('type01_finance_ccs'))      || [];
+                personalDatabase = JSON.parse(localStorage.getItem('type01_finance_personal')) || [];
                 if (emiDatabase.length || accDatabase.length || txnDatabase.length) {
                     if (confirm("Found existing local data. Upload it to your account?")) saveToCloud();
                 }
             }
         } catch(e) {
-            emiDatabase  = JSON.parse(localStorage.getItem('type01_finance_db_v6'))    || [];
-            accDatabase  = JSON.parse(localStorage.getItem('type01_finance_accs'))     || [];
-            txnDatabase  = JSON.parse(localStorage.getItem('type01_finance_txns'))     || [];
-            appSettings  = JSON.parse(localStorage.getItem('type01_finance_settings')) || appSettings;
-            bankDatabase = JSON.parse(localStorage.getItem('type01_finance_banks'))    || [];
-            ccDatabase   = JSON.parse(localStorage.getItem('type01_finance_ccs'))      || [];
+            emiDatabase      = JSON.parse(localStorage.getItem('type01_finance_db_v6'))    || [];
+            accDatabase      = JSON.parse(localStorage.getItem('type01_finance_accs'))     || [];
+            txnDatabase      = JSON.parse(localStorage.getItem('type01_finance_txns'))     || [];
+            appSettings      = JSON.parse(localStorage.getItem('type01_finance_settings')) || appSettings;
+            bankDatabase     = JSON.parse(localStorage.getItem('type01_finance_banks'))    || [];
+            ccDatabase       = JSON.parse(localStorage.getItem('type01_finance_ccs'))      || [];
+            personalDatabase = JSON.parse(localStorage.getItem('type01_finance_personal')) || [];
         }
     }
 
@@ -1167,6 +1333,7 @@
         localStorage.setItem('type01_finance_settings', JSON.stringify(appSettings));
         localStorage.setItem('type01_finance_banks',    JSON.stringify(bankDatabase));
         localStorage.setItem('type01_finance_ccs',      JSON.stringify(ccDatabase));
+        localStorage.setItem('type01_finance_personal', JSON.stringify(personalDatabase));
         if (!currentUser) return;
         showSync('saving');
         clearTimeout(syncTimer);
@@ -1174,6 +1341,7 @@
             db.collection('users').doc(currentUser.uid).set({
                 emis: emiDatabase, accounts: accDatabase, txns: txnDatabase,
                 settings: appSettings, banks: bankDatabase, ccs: ccDatabase,
+                personal: personalDatabase,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => showSync('saved')).catch(() => showSync('error'));
         }, 1200);
@@ -1218,7 +1386,7 @@
     const _modalIds = [
         'emiModal','txnModal','accountModal','bankModal','ccModal',
         'bankDetailModal','copyPopup','updateBalModal','ccBillAmountModal',
-        'appSettingsModal','settingsModal','dataModal','smsParserModal','exportTxnModal'
+        'appSettingsModal','settingsModal','dataModal','smsParserModal','exportTxnModal','personalModal'
     ];
     function _getOpenModal() {
         for (let i = _modalIds.length - 1; i >= 0; i--) {
@@ -1263,13 +1431,12 @@
     }
 
     function executeTabSwitch(tabId) {
-        ['dashboard','daily','overview','bank-cards','emi-calc'].forEach(id => {
+        ['dashboard','daily','overview','bank-cards','emi-calc','personal'].forEach(id => {
             const el = document.getElementById(id); if (!el) return;
             el.style.display = id === tabId ? (id === 'dashboard' ? 'block' : 'flex') : 'none';
         });
-        // Update tab buttons — main tabs row (first 5 .tab-btn outside modals)
         const allTabBtns = document.querySelectorAll('.container > .tabs .tab-btn');
-        const tabMap = ['dashboard','daily','overview','bank-cards','emi-calc'];
+        const tabMap = ['dashboard','daily','overview','bank-cards','emi-calc','personal'];
         allTabBtns.forEach((btn, i) => btn.classList.toggle('active', tabMap[i] === tabId));
         const activePanel = document.getElementById(tabId);
         if (_swipeDirection && activePanel) {
@@ -1278,9 +1445,10 @@
             activePanel.classList.add(_swipeDirection === 'left' ? 'slide-in-right' : 'slide-in-left');
             _swipeDirection = null;
         }
-        if (tabId === 'dashboard') renderDashboard();
-        if (tabId === 'daily') renderDailyTracker();
+        if (tabId === 'dashboard')  renderDashboard();
+        if (tabId === 'daily')      renderDailyTracker();
         if (tabId === 'bank-cards') renderBankCards();
+        if (tabId === 'personal')   renderPersonalTab();
         if (tabId === 'overview') {
             generateOverviewScroller();
             setTimeout(() => { const ap = document.querySelector('.month-pill.active'); if(ap) ap.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'}); }, 50);
@@ -1537,86 +1705,334 @@
         }
     }
 
-    function renderDailyTracker() {
-        const accScroller = document.getElementById('account-scroller'); const txnList = document.getElementById('txn-list');
-        accScroller.innerHTML = ''; txnList.innerHTML = '';
+    // ══ DAILY TAB ACCOUNT FILTER ══════════════════════════
+    function setAccFilter(filter) {
+        _accFilter    = filter;
+        _accSubFilter = '';        // reset owner filter whenever tab changes
+        _selectedAccIds = new Set();
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        document.querySelector(`.filter-chip[data-filter="${filter}"]`)?.classList.add('active');
+        // Reset filter button highlight
+        const btn = document.getElementById('accPickerBtn');
+        if (btn) btn.style.borderColor = '';
+        renderDailyTracker();
+    }
 
-        if(accDatabase.length === 0) { accScroller.innerHTML = `<div style="padding: 15px; color: var(--text-secondary); font-size:12px;">No accounts added yet.</div>`; }
+    // ── Account filter button — shows ONLY owner/holder names relevant to current tab ──
+    let _accPickerOpen = false;
+    let _selectedAccIds = new Set(); // empty = show all
 
-        let totalNetBalance = 0;
-        let dynamicAccs = accDatabase.map(acc => {
-            let currentBal = acc.initialBalance;
-            txnDatabase.filter(t => t.accountId === acc.id).forEach(t => { if(t.type === 'Income') currentBal += t.amount; else currentBal -= t.amount; });
-            totalNetBalance += currentBal; return { ...acc, currentBal };
+    function toggleAccPicker() {
+        _accPickerOpen = !_accPickerOpen;
+        const menu = document.getElementById('accPickerMenu');
+        if (!_accPickerOpen) { menu.style.display = 'none'; return; }
+
+        menu.innerHTML = '';
+
+        // Normalize helper — removes extra spaces, lowercases for dedup key
+        const norm = s => (s || '').trim().replace(/\s+/g,' ').toLowerCase();
+
+        // Build a map: normalizedKey → { display: canonicalName, banks: count, ccs: count }
+        const ownerMap = new Map();
+
+        const addToMap = (rawName, isBankEntry) => {
+            if (!rawName || !rawName.trim()) return;
+            const key = norm(rawName);
+            if (!ownerMap.has(key)) ownerMap.set(key, { display: rawName.trim(), banks: 0, ccs: 0 });
+            if (isBankEntry) ownerMap.get(key).banks++;
+            else             ownerMap.get(key).ccs++;
+        };
+
+        if (_accFilter === 'all' || _accFilter === 'bank') {
+            bankDatabase.forEach(b => addToMap(b.holder, true));
+        }
+        if (_accFilter === 'all' || _accFilter === 'cc') {
+            ccDatabase.forEach(c => addToMap(c.owner, false));
+        }
+
+        if (ownerMap.size === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'cc-sort-opt';
+            empty.style.color = 'var(--text-secondary)';
+            empty.textContent = 'No named owners found';
+            menu.appendChild(empty);
+            menu.style.display = 'block';
+            return;
+        }
+
+        // "Show All" reset row
+        const allOpt = document.createElement('div');
+        allOpt.className = 'cc-sort-opt';
+        allOpt.style.cssText = 'font-weight:700;color:var(--accent-blue);border-bottom:1px solid var(--border-color);';
+        allOpt.innerHTML = _accSubFilter === '' ? '✅ All Owners' : '☐ Show All Owners';
+        allOpt.onclick = () => {
+            _accSubFilter = '';
+            document.getElementById('accPickerBtn').style.borderColor = '';
+            menu.style.display = 'none'; _accPickerOpen = false;
+            renderDailyTracker();
+        };
+        menu.appendChild(allOpt);
+
+        // One row per unique owner — sorted A-Z by display name
+        Array.from(ownerMap.entries())
+            .sort((a, b) => a[1].display.localeCompare(b[1].display))
+            .forEach(([key, info]) => {
+                const isActive = norm(_accSubFilter) === key;
+                const countParts = [];
+                if ((_accFilter === 'all' || _accFilter === 'bank') && info.banks > 0)
+                    countParts.push(info.banks + ' bank' + (info.banks > 1 ? 's' : ''));
+                if ((_accFilter === 'all' || _accFilter === 'cc') && info.ccs > 0)
+                    countParts.push(info.ccs + ' card' + (info.ccs > 1 ? 's' : ''));
+                const countText = countParts.length
+                    ? ` <span style="font-size:10px;color:var(--text-secondary);">(${countParts.join(', ')})</span>`
+                    : '';
+                const row = document.createElement('div');
+                row.className = 'cc-sort-opt';
+                row.innerHTML = `<span style="margin-right:8px;">${isActive ? '✅' : '⬜'}</span>👤 ${info.display}${countText}`;
+                row.onclick = () => {
+                    // Store the normalized key so matching works regardless of minor name variations
+                    _accSubFilter = isActive ? '' : key;
+                    document.getElementById('accPickerBtn').style.borderColor = _accSubFilter ? 'var(--accent-blue)' : '';
+                    menu.style.display = 'none'; _accPickerOpen = false;
+                    renderDailyTracker();
+                };
+                menu.appendChild(row);
+            });
+
+        menu.style.display = 'block';
+    }
+
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#accPickerMenu') && !e.target.closest('#accPickerBtn')) {
+            const m = document.getElementById('accPickerMenu');
+            if (m) { m.style.display = 'none'; _accPickerOpen = false; }
+        }
+    });
+
+    // ── Source selector for Personal modal ──
+    function selectSource(src) {
+        document.getElementById('personalSource').value = src;
+        document.querySelectorAll('.src-option').forEach(el => {
+            const isActive = el.dataset.src === src;
+            el.style.borderColor = isActive ? 'var(--accent-blue)'    : 'var(--border-color)';
+            el.style.background  = isActive ? 'rgba(91,141,239,0.1)' : 'transparent';
+        });
+    }
+
+    // ── Sync + DEDUPLICATE accDatabase from bankDatabase + ccDatabase ──
+    // Runs once per renderDailyTracker. Merges old manually-added accounts
+    // with bank/CC records using account number and holder/owner name.
+    function syncAccountsFromBankCards() {
+        // ── Banks ──
+        bankDatabase.forEach(b => {
+            const name = b.bankname + (b.branch ? ' - ' + b.branch : '');
+
+            // 1. Already linked by id → just update name
+            let acc = accDatabase.find(a => a.linkedBankId === b.id);
+            if (acc) { acc.name = name; return; }
+
+            // 2. Match by account number (if set)
+            if (b.accno) {
+                acc = accDatabase.find(a =>
+                    !a.linkedBankId && !a.linkedCCId &&
+                    a.type !== 'Credit Card' &&
+                    a.name && a.name.toLowerCase().includes(b.bankname.toLowerCase())
+                );
+            }
+
+            // 3. Match by name
+            if (!acc) {
+                acc = accDatabase.find(a =>
+                    !a.linkedBankId && !a.linkedCCId &&
+                    a.type !== 'Credit Card' &&
+                    a.name && (a.name === name || a.name.toLowerCase().includes(b.bankname.toLowerCase()))
+                );
+            }
+
+            if (acc) {
+                // Merge: link this existing account to the bank record
+                acc.linkedBankId = b.id;
+                acc.name = name;
+            } else {
+                // Create fresh
+                accDatabase.push({
+                    id: Date.now() + bankDatabase.indexOf(b),
+                    name, type: b.acctype || 'Bank',
+                    initialBalance: 0,
+                    linkedBankId: b.id
+                });
+            }
         });
 
+        // Remove orphan bank accounts (entries whose bank was deleted)
+        // Keep accounts that are either: linked to a still-existing bank, linked to a CC, or unlinked (manual/cash)
+        accDatabase = accDatabase.filter(a => {
+            if (a.linkedBankId) return bankDatabase.some(b => b.id === a.linkedBankId);
+            return true; // keep CC-linked and unlinked accounts
+        });
+
+        // ── Credit Cards ──
+        ccDatabase.forEach(c => {
+            const name = c.bankname + (c.name ? ' ' + c.name : '') + (c.owner ? ' (' + c.owner + ')' : '');
+
+            // 1. Already linked by id
+            let acc = accDatabase.find(a => a.linkedCCId === c.id);
+            if (acc) { acc.name = name; return; }
+
+            // 2. Match by card last 4 digits or owner + bank name
+            acc = accDatabase.find(a =>
+                !a.linkedBankId && !a.linkedCCId &&
+                a.type === 'Credit Card' &&
+                a.name && (
+                    a.name.toLowerCase().includes(c.bankname.toLowerCase()) &&
+                    (!c.owner || a.name.toLowerCase().includes(c.owner.toLowerCase()))
+                )
+            );
+
+            if (acc) {
+                acc.linkedCCId = c.id;
+                acc.name = name;
+            } else {
+                accDatabase.push({
+                    id: Date.now() + ccDatabase.indexOf(c) + 5000,
+                    name, type: 'Credit Card',
+                    initialBalance: 0,
+                    linkedCCId: c.id
+                });
+            }
+        });
+
+        // Remove orphan CC accounts
+        accDatabase = accDatabase.filter(a => {
+            if (a.linkedCCId) return ccDatabase.some(c => c.id === a.linkedCCId);
+            return true;
+        });
+
+        // Deduplicate: if two entries link to the same bank or CC id, keep the one with higher initialBalance
+        const seenBankIds = new Map();
+        const seenCCIds   = new Map();
+        accDatabase.forEach(a => {
+            if (a.linkedBankId) {
+                const prev = seenBankIds.get(a.linkedBankId);
+                if (!prev || a.initialBalance > prev.initialBalance) seenBankIds.set(a.linkedBankId, a);
+            }
+            if (a.linkedCCId) {
+                const prev = seenCCIds.get(a.linkedCCId);
+                if (!prev || a.initialBalance > prev.initialBalance) seenCCIds.set(a.linkedCCId, a);
+            }
+        });
+        const keepIds = new Set([
+            ...Array.from(seenBankIds.values()).map(a => a.id),
+            ...Array.from(seenCCIds.values()).map(a => a.id),
+            ...accDatabase.filter(a => !a.linkedBankId && !a.linkedCCId).map(a => a.id)
+        ]);
+        accDatabase = accDatabase.filter(a => keepIds.has(a.id));
+    }
+
+    function renderDailyTracker() {
+        syncAccountsFromBankCards();
+
+        const accScroller = document.getElementById('account-scroller');
+        const txnList     = document.getElementById('txn-list');
+        accScroller.innerHTML = ''; txnList.innerHTML = '';
+
+        // Build the filtered account list
+        let filteredAccs = accDatabase.map(acc => {
+            let currentBal = acc.initialBalance;
+            txnDatabase.filter(t => t.accountId === acc.id).forEach(t => { if(t.type==='Income') currentBal += t.amount; else currentBal -= t.amount; });
+            return { ...acc, currentBal };
+        });
+
+        // Apply type filter (All/Banks/Cards chips)
+        if (_accFilter === 'bank') {
+            filteredAccs = filteredAccs.filter(a => a.linkedBankId || (a.type === 'Bank' && !a.linkedCCId));
+        } else if (_accFilter === 'cc') {
+            filteredAccs = filteredAccs.filter(a => a.linkedCCId || a.type === 'Credit Card');
+        }
+
+        // Apply owner sub-filter from Filter button (normalized matching handles minor name variations)
+        if (_accSubFilter) {
+            const normSub = _accSubFilter.trim().replace(/\s+/g,' ').toLowerCase();
+            filteredAccs = filteredAccs.filter(a => {
+                if (a.linkedBankId) {
+                    const b = bankDatabase.find(x => x.id === a.linkedBankId);
+                    return b && (b.holder||'').trim().replace(/\s+/g,' ').toLowerCase() === normSub;
+                }
+                if (a.linkedCCId) {
+                    const c = ccDatabase.find(x => x.id === a.linkedCCId);
+                    return c && (c.owner||'').trim().replace(/\s+/g,' ').toLowerCase() === normSub;
+                }
+                return false;
+            });
+        }
+
+        const totalNetBalance = filteredAccs.reduce((s,a) => s + a.currentBal, 0);
         const netWorthEl = document.getElementById('totalAvailableBalance');
         netWorthEl.innerText = formatINR(totalNetBalance);
-        if(totalNetBalance < 0) netWorthEl.classList.add('negative'); else netWorthEl.classList.remove('negative');
+        netWorthEl.classList.toggle('negative', totalNetBalance < 0);
 
-        dynamicAccs.forEach(acc => {
-            let balClass = acc.currentBal < 0 ? 'negative' : '';
-            accScroller.innerHTML += `<div class="acc-card"
-                onclick="openUpdateBalModal(${acc.id})"
-                oncontextmenu="event.preventDefault();openUpdateBalModal(${acc.id})"
-                ontouchstart="startAccLongPress(${acc.id},event)"
-                ontouchend="cancelAccLongPress()"
-                ontouchmove="cancelAccLongPress()"
-                style="cursor:pointer;user-select:none;">
-                <i class="fa-solid fa-xmark acc-delete" onclick="event.stopPropagation();deleteAccount(${acc.id})"></i>
-                <div class="acc-type">${acc.type}</div>
-                <div class="acc-name">${acc.name}</div>
-                <div class="acc-bal ${balClass}">${formatINR(acc.currentBal)}</div>
+        if (filteredAccs.length === 0) {
+            accScroller.innerHTML = `<div style="padding:15px;color:var(--text-secondary);font-size:12px;">${
+                _accFilter==='all' ? 'Add banks/cards in Bank & Cards tab.' : 'No accounts match this filter.'
+            }</div>`;
+        }
+
+        filteredAccs.forEach(acc => {
+            const balClass = acc.currentBal < 0 ? 'negative' : '';
+            const typeIcon = acc.type === 'Credit Card' ? '💳' : acc.type === 'Cash' ? '💵' : '🏦';
+            // Sync status badge
+            let syncBadge = '';
+            if (acc.linkedBankId) {
+                syncBadge = '<div style="font-size:9px;font-weight:700;color:var(--accent-green);margin-top:4px;">🔗 Synced with Bank</div>';
+            } else if (acc.linkedCCId) {
+                syncBadge = '<div style="font-size:9px;font-weight:700;color:var(--accent-blue);margin-top:4px;">🔗 Synced with Card</div>';
+            } else {
+                syncBadge = '<div style="font-size:9px;color:var(--text-secondary);margin-top:4px;">Manual account</div>';
+            }
+            accScroller.innerHTML += `<div class="acc-card" style="cursor:pointer;user-select:none;position:relative;">
+                <i class="fa-solid fa-xmark" onclick="event.stopPropagation();deleteAccount(${acc.id})"
+                   style="position:absolute;top:8px;right:8px;color:var(--border-color);cursor:pointer;font-size:13px;padding:4px;"
+                   onmouseenter="this.style.color='var(--accent-red)'" onmouseleave="this.style.color='var(--border-color)'"></i>
+                <div onclick="openUpdateBalModal(${acc.id})">
+                    <div class="acc-type">${typeIcon} ${acc.type}</div>
+                    <div class="acc-name" style="padding-right:20px;">${acc.name}</div>
+                    <div class="acc-bal ${balClass}">${formatINR(acc.currentBal)}</div>
+                    ${syncBadge}
+                </div>
             </div>`;
         });
 
         if(txnDatabase.length === 0) {
-            txnList.innerHTML = `<div style="text-align:center; padding: 30px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color);"><p style="color: var(--text-secondary);">No transactions logged yet.</p></div>`; return;
+            txnList.innerHTML = `<div style="text-align:center; padding: 30px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color);"><p style="color: var(--text-secondary);">No transactions logged yet.</p></div>`;
+            return;
         }
 
-        // Sort: newest date first, within same date newest id (time) first
-        let sortedTxns = [...txnDatabase].sort((a,b) => {
-            if(b.date !== a.date) return b.date.localeCompare(a.date);
-            return b.id - a.id;
-        });
-
-        // Group by date
+        let sortedTxns = [...txnDatabase].sort((a,b) => { if(b.date!==a.date) return b.date.localeCompare(a.date); return b.id-a.id; });
         const groups = {};
-        sortedTxns.forEach(txn => {
-            if(!groups[txn.date]) groups[txn.date] = [];
-            groups[txn.date].push(txn);
-        });
+        sortedTxns.forEach(txn => { if(!groups[txn.date]) groups[txn.date]=[]; groups[txn.date].push(txn); });
 
         const today = new Date(); const todayStr = today.toISOString().slice(0,10);
-        const yesterday = new Date(today); yesterday.setDate(today.getDate()-1);
-        const yesterdayStr = yesterday.toISOString().slice(0,10);
-
+        const yesterday = new Date(today); yesterday.setDate(today.getDate()-1); const yesterdayStr = yesterday.toISOString().slice(0,10);
         const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 
-        Object.keys(groups).sort((a,b) => b.localeCompare(a)).forEach(dateStr => {
+        Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(dateStr => {
             const txns = groups[dateStr];
-            let totalExp = 0; let totalInc = 0;
-            txns.forEach(t => { if(t.type === 'Expense') totalExp += t.amount; else totalInc += t.amount; });
-
-            // Build label
-            const dateObj = new Date(dateStr + 'T00:00:00');
+            let totalExp=0, totalInc=0;
+            txns.forEach(t => { if(t.type==='Expense') totalExp+=t.amount; else totalInc+=t.amount; });
+            const dateObj = new Date(dateStr+'T00:00:00');
             let label;
-            if(dateStr === todayStr) label = `Today, ${dateObj.toLocaleDateString('en-IN', {day:'numeric', month:'short'})}`;
-            else if(dateStr === yesterdayStr) label = `Yesterday, ${dateObj.toLocaleDateString('en-IN', {day:'numeric', month:'short'})}`;
-            else label = `${dayNames[dateObj.getDay()]}, ${dateObj.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})}`;
-
-            let totalsHtml = '';
-            if(totalExp > 0) totalsHtml += `<span class="date-group-exp">-${formatINR(totalExp)}</span>`;
-            if(totalInc > 0) totalsHtml += `<span class="date-group-inc">+${formatINR(totalInc)}</span>`;
-
-            txnList.innerHTML += `<div class="date-group-header"><span class="date-group-label">${label}</span><div class="date-group-totals">${totalsHtml}</div></div>`;
-
+            if(dateStr===todayStr) label=`Today, ${dateObj.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;
+            else if(dateStr===yesterdayStr) label=`Yesterday, ${dateObj.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}`;
+            else label=`${dayNames[dateObj.getDay()]}, ${dateObj.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+            let totalsHtml='';
+            if(totalExp>0) totalsHtml+=`<span class="date-group-exp">-${formatINR(totalExp)}</span>`;
+            if(totalInc>0) totalsHtml+=`<span class="date-group-inc">+${formatINR(totalInc)}</span>`;
+            txnList.innerHTML+=`<div class="date-group-header"><span class="date-group-label">${label}</span><div class="date-group-totals">${totalsHtml}</div></div>`;
             txns.forEach(txn => {
-                let accName = accDatabase.find(a => a.id === txn.accountId)?.name || 'Unknown Account';
-                let isInc = txn.type === 'Income'; let iconStr = isInc ? '<i class="fa-solid fa-arrow-down"></i>' : '<i class="fa-solid fa-arrow-up"></i>';
-                let colorCls = isInc ? 'inc' : 'exp';
-                let timeDisplay = txn.time ? ` at ${txn.time}` : '';
-                txnList.innerHTML += `<div class="txn-card"><div class="txn-left"><div class="txn-icon ${colorCls}">${iconStr}</div><div><div class="txn-note">${txn.note}</div><div class="txn-meta">${timeDisplay ? timeDisplay.trim() : ''} ${timeDisplay ? '•' : ''} ${accName}</div></div></div><div class="txn-right"><div class="txn-amt ${colorCls}">${isInc ? '+' : '-'}${formatINR(txn.amount)}</div><div style="display:flex;gap:6px;margin-top:4px;"><button class="txn-del" onclick="editTransaction(${txn.id})" style="color:var(--accent-blue);">Edit</button><button class="txn-del" onclick="deleteTransaction(${txn.id})">Delete</button></div></div></div>`;
+                let accName = accDatabase.find(a=>a.id===txn.accountId)?.name||'Unknown';
+                let isInc=txn.type==='Income'; let colorCls=isInc?'inc':'exp';
+                let timeDisplay=txn.time?` at ${txn.time}`:'';
+                txnList.innerHTML+=`<div class="txn-card"><div class="txn-left"><div class="txn-icon ${colorCls}">${isInc?'<i class="fa-solid fa-arrow-down"></i>':'<i class="fa-solid fa-arrow-up"></i>'}</div><div><div class="txn-note">${txn.note}</div><div class="txn-meta">${timeDisplay?timeDisplay.trim():''} ${timeDisplay?'•':''} ${accName}</div></div></div><div class="txn-right"><div class="txn-amt ${colorCls}">${isInc?'+':'-'}${formatINR(txn.amount)}</div><div style="display:flex;gap:6px;margin-top:4px;"><button class="txn-del" onclick="editTransaction(${txn.id})" style="color:var(--accent-blue);">Edit</button><button class="txn-del" onclick="deleteTransaction(${txn.id})">Delete</button></div></div></div>`;
             });
         });
     }
@@ -2021,8 +2437,9 @@
             }
         });
 
-        // Build sorted list: unpaid first, paid at bottom
-        const unpaidRows = []; const paidRows = [];
+        // Build sorted list: overdue first → upcoming unpaid → paid at bottom
+        const overdueRows = [], upcomingRows = [], paidRows = [];
+        const todayDate = new Date(); todayDate.setHours(0,0,0,0);
         emiDatabase.forEach(emi => {
             if(!emi.emiStartDate) return;
             const start = new Date(emi.emiStartDate);
@@ -2031,17 +2448,26 @@
             if (monthsPassed >= 0 && monthsPassed < emi.totalTenure) {
                 const monthKey = `${targetYear}-${targetMonthIndex}`;
                 const isPaid = emi.paidMonths && emi.paidMonths.includes(monthKey);
-                const paidClass = isPaid ? 'paid-row' : '';
-                const paidBadge = isPaid ? `<div class="emi-paid-badge"><i class="fa-solid fa-check"></i> Paid</div>` : '';
-                const row = `<div class="emi-row ${paidClass}"><div class="emi-row-left"><div class="emi-row-title">${emi.product} <span class="emi-row-lender">(${emi.lender})</span></div><div class="emi-row-date">Pay on: ${start.getDate()}${getOrdinalSuffix(start.getDate())}</div>${paidBadge}</div><div class="emi-row-right"><div class="emi-row-amount">${formatINR(emi.emi)}</div><div class="emi-row-count">Instalment: ${currentInstalment}/${emi.totalTenure}</div></div></div>`;
-                if (isPaid) paidRows.push(row); else unpaidRows.push(row);
+                const dueDay = emi.emiDueDay || start.getDate();
+                const dueDate = new Date(targetYear, targetMonthIndex, dueDay);
+                const isOverdue = !isPaid && dueDate < todayDate;
+                const paidClass = isPaid ? 'paid-row' : (isOverdue ? 'style="border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.04);"' : '');
+                const paidBadge = isPaid
+                    ? `<div class="emi-paid-badge"><i class="fa-solid fa-check"></i> Paid</div>`
+                    : (isOverdue ? `<div class="emi-paid-badge" style="background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.3);color:#ef4444;">⚠️ Overdue</div>` : '');
+                const rowClass = isPaid ? 'paid-row' : '';
+                const row = `<div class="emi-row ${rowClass}"><div class="emi-row-left"><div class="emi-row-title">${emi.product} <span class="emi-row-lender">(${emi.lender})</span></div><div class="emi-row-date">Pay on: ${dueDay}${getOrdinalSuffix(dueDay)}</div>${paidBadge}</div><div class="emi-row-right"><div class="emi-row-amount">${formatINR(emi.emi)}</div><div class="emi-row-count">Instalment: ${currentInstalment}/${emi.totalTenure}</div></div></div>`;
+                if (isPaid) paidRows.push(row);
+                else if (isOverdue) overdueRows.push(row);
+                else upcomingRows.push(row);
             }
         });
+        const allRows = [...overdueRows, ...upcomingRows];
         if (paidRows.length > 0) {
-            unpaidRows.push(`<div class="paid-section-divider" style="margin:12px 0 8px;"><span>Paid</span></div>`);
-            paidRows.forEach(r => unpaidRows.push(r));
+            allRows.push(`<div class="paid-section-divider" style="margin:12px 0 8px;"><span>Paid</span></div>`);
+            paidRows.forEach(r => allRows.push(r));
         }
-        listDiv.innerHTML = unpaidRows.join('');
+        listDiv.innerHTML = allRows.join('');
         document.getElementById('monthlyTotalBadge').innerText = `Total Payments: ${formatINR(totalMonthlyPayout)}`;
 
         // Paid vs pending breakdown
@@ -2157,8 +2583,19 @@
             billgen: get('billgen'), billpay: get('billpay')
         };
         const eid = document.getElementById('editCCId').value;
-        if (eid) { const i = ccDatabase.findIndex(x => x.id == eid); if (i !== -1) { rec.id = parseInt(eid); ccDatabase[i] = rec; } }
-        else { rec.id = Date.now(); ccDatabase.push(rec); }
+        if (eid) {
+            const i = ccDatabase.findIndex(x => x.id == eid);
+            if (i !== -1) { rec.id = parseInt(eid); ccDatabase[i] = rec; }
+        } else {
+            rec.id = Date.now();
+            ccDatabase.push(rec);
+            // Auto-create a dedicated account entry for this CC so its balance is isolated
+            const accName = rec.bankname + (rec.name ? ' ' + rec.name : '') + (rec.owner ? ' (' + rec.owner + ')' : '');
+            // Only create if no existing account is already linked to this exact CC id
+            if (!accDatabase.find(a => a.linkedCCId === rec.id)) {
+                accDatabase.push({ id: Date.now() + 1, name: accName, type: 'Credit Card', initialBalance: 0, linkedCCId: rec.id });
+            }
+        }
         saveToCloud(); closeCCModal(); renderBankCards();
     }
     function deleteCC(id) { if (confirm('Delete this credit card?')) { ccDatabase = ccDatabase.filter(x => x.id !== id); saveToCloud(); renderBankCards(); } }
@@ -2187,8 +2624,10 @@
         const d = parseInt(c[field]); if (!d) return 999;
         const t = new Date(); const yr = t.getFullYear(), mo = t.getMonth();
         const isPaid = _ccIsPaid(c);
-        let target = isPaid ? new Date(yr, mo+1, d) : new Date(yr, mo, d);
-        if (!isPaid && target <= t) target = new Date(yr, mo+1, d);
+        // If paid this month, show countdown to NEXT month's date
+        if (isPaid) return Math.ceil((new Date(yr, mo+1, d) - t) / 86400000);
+        // If not paid: keep the real days (negative = overdue, sorts to top)
+        const target = new Date(yr, mo, d);
         return Math.ceil((target - t) / 86400000);
     }
     function applyCCSort() {
@@ -2196,8 +2635,10 @@
         ccDatabase.sort((a, b) => {
             const aPaid = _ccIsPaid(a) ? 1 : 0;
             const bPaid = _ccIsPaid(b) ? 1 : 0;
+            // Paid always goes last
             if (aPaid !== bPaid) return aPaid - bPaid;
             if (field === 'billgen' || field === 'billpay') {
+                // Lower (more negative = more overdue) comes first
                 return _ccDaysUntil(a, field) - _ccDaysUntil(b, field);
             }
             return (a[field] || '').localeCompare(b[field] || '');
@@ -2268,9 +2709,8 @@
                                    : '<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.45);">Tap to set</div>');
 
                 // ── Find the linked Daily-tab account for this CC ──
-                // Priority: 1) Credit Card type account whose name matches CC bankname or variant
-                //           2) Any account type with matching name
-                //           3) Keyword overlap fallback
+                // Priority 1: account with exact linkedCCId (guaranteed isolation per card)
+                // Priority 2: scored name match as fallback for legacy data
                 function ccNameMatch(accName, ccBank, ccVariant) {
                     var an = accName.toLowerCase();
                     var bn = (ccBank || '').toLowerCase();
@@ -2278,21 +2718,21 @@
                     if (an === bn) return 10;
                     if (an.includes(bn) || bn.includes(an)) return 8;
                     if (vn && (an.includes(vn) || vn.includes(an))) return 6;
-                    // keyword overlap: check if first meaningful word of bankname is in accName
                     var firstWord = bn.replace(/bank|finance|card/g,'').trim().split(' ')[0];
                     if (firstWord && firstWord.length > 2 && an.includes(firstWord)) return 4;
                     return 0;
                 }
-                var linkedAcc = null;
-                var bestScore = 0;
-                accDatabase.forEach(function(a) {
-                    var score = ccNameMatch(a.name, c.bankname, c.name);
-                    if (score > 0) {
-                        // Boost score if account type is Credit Card
-                        if (a.type === 'Credit Card') score += 5;
-                        if (score > bestScore) { bestScore = score; linkedAcc = a; }
-                    }
-                });
+                var linkedAcc = accDatabase.find(function(a) { return a.linkedCCId === c.id; });
+                if (!linkedAcc) {
+                    var bestScore = 0;
+                    accDatabase.forEach(function(a) {
+                        var score = ccNameMatch(a.name, c.bankname, c.name);
+                        if (score > 0) {
+                            if (a.type === 'Credit Card') score += 5;
+                            if (score > bestScore) { bestScore = score; linkedAcc = a; }
+                        }
+                    });
+                }
                 var cardBal = null;
                 if (linkedAcc) {
                     cardBal = linkedAcc.initialBalance;
@@ -2700,7 +3140,8 @@
         { id: 'daily',      label: '📅 Daily Tracker' },
         { id: 'overview',   label: '🗓 Overview' },
         { id: 'bank-cards', label: '🏦 Bank & Cards' },
-        { id: 'emi-calc',   label: '🧮 Calculator' }
+        { id: 'emi-calc',   label: '🧮 Calculator' },
+        { id: 'personal',   label: '👥 Personal' }
     ];
 
     function getEnabledTabs() {
@@ -2779,37 +3220,36 @@
 
     function applyTabVisibility() {
         const enabled = getEnabledTabs();
-        const tabMap  = ['dashboard','daily','overview','bank-cards','emi-calc'];
+        const tabMap  = ['dashboard','daily','overview','bank-cards','emi-calc','personal'];
         document.querySelectorAll('.container > .tabs .tab-btn').forEach((btn, i) => {
             btn.style.display = enabled.includes(tabMap[i]) ? '' : 'none';
         });
-        const panels = ['dashboard','daily','overview','bank-cards','emi-calc'];
+        const panels = ['dashboard','daily','overview','bank-cards','emi-calc','personal'];
         const active = panels.find(p => { const el=document.getElementById(p); return el && el.style.display!=='none'; });
         if (active && !enabled.includes(active)) handleTabClick(enabled[0]);
     }
 
     // ── UPDATE ACCOUNT BALANCE ──
     function openUpdateBalModal(id) {
-        const acc = accDatabase.find(a => a.id === id); if (!acc) return;
-        // Compute current balance on the fly (same formula as renderDailyTracker)
+        // Use == (loose) so both float and int legacy IDs match
+        const acc = accDatabase.find(a => a.id == id); if (!acc) return;
         let currentBal = acc.initialBalance;
-        txnDatabase.filter(t => t.accountId === id).forEach(t => {
+        txnDatabase.filter(t => t.accountId == acc.id).forEach(t => {
             currentBal += t.type === 'Income' ? t.amount : -t.amount;
         });
         document.getElementById('updateBalTitle').innerText = `Update: ${acc.name}`;
-        document.getElementById('updateBalAccId').value = id;
+        document.getElementById('updateBalAccId').value = acc.id;
         document.getElementById('updateBalInput').value = currentBal;
         document.getElementById('updateBalModal').style.display = 'flex';
         setTimeout(() => document.getElementById('updateBalInput').select(), 100);
     }
     function saveUpdatedBalance() {
-        const id = parseInt(document.getElementById('updateBalAccId').value);
+        const id = document.getElementById('updateBalAccId').value;
         const newBal = parseFloat(document.getElementById('updateBalInput').value);
         if (isNaN(newBal)) { alert('Please enter a valid amount.'); return; }
-        const acc = accDatabase.find(a => a.id === id); if (!acc) return;
-        // Compute txn contribution so that initialBalance + txns = newBal
+        const acc = accDatabase.find(a => a.id == id); if (!acc) return;
         let txnContrib = 0;
-        txnDatabase.filter(t => t.accountId === id).forEach(t => {
+        txnDatabase.filter(t => t.accountId == acc.id).forEach(t => {
             txnContrib += t.type === 'Income' ? t.amount : -t.amount;
         });
         acc.initialBalance = newBal - txnContrib;
@@ -3280,8 +3720,8 @@
     }
 
     // Run alert check once on load, then every hour
-    setTimeout(checkUpcomingAlerts, 3000);
-    setInterval(checkUpcomingAlerts, 60 * 60 * 1000);
+    setTimeout(function() { checkUpcomingAlerts(); checkPersonalAlerts(); }, 3000);
+    setInterval(function() { checkUpcomingAlerts(); checkPersonalAlerts(); }, 60 * 60 * 1000);
 
     // App is initialized via auth.onAuthStateChanged() above — no direct call needed here.
 
@@ -3289,17 +3729,215 @@
     // ── WHATSAPP OPENER
     // ══════════════════════════════════════════
     function openWhatsApp() {
-        // Try the standard wa.me link — Android system handles the redirect to WhatsApp
-        var url = 'https://wa.me/919603611435';
-        // Create a temporary <a> with target blank and simulate click — some WebViews
-        // route this through shouldOverrideUrlLoading properly, unlike location.href
         var a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        document.body.appendChild(a);
-        a.click();
+        a.href = 'https://wa.me/919603611435';
+        a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click();
         setTimeout(function() { document.body.removeChild(a); }, 500);
+    }
+
+    // ══════════════════════════════════════════
+    // ── FEATURE 1: SMS TRANSACTION NOTIFICATION BANNER
+    // ══════════════════════════════════════════
+    var _pendingSmsTxn = null;
+
+    window.onSMSReceived = function(smsBody) {
+        if (!smsBody) return;
+        var amtMatch = smsBody.match(/(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i);
+        if (!amtMatch) return;
+        var amount = parseFloat(amtMatch[1].replace(/,/g,''));
+        if (!amount || amount <= 0) return;
+        var txt = smsBody.toLowerCase();
+        var isDebit  = /debited|debit|paid|withdrawn|purchase/i.test(txt);
+        var isCredit = /credited|credit|received|deposited/i.test(txt);
+        if (!isDebit && !isCredit) return;
+        var merchant = '';
+        var tp = smsBody.match(/(?:at|to|for)\s+([A-Z][A-Za-z0-9 &.'-]{2,30})/);
+        if (tp) merchant = tp[1].trim();
+        var refM = smsBody.match(/(?:Ref\.?\s*No\.?|UPI Ref|Txn)\s*:?\s*([A-Z0-9]{6,20})/i);
+        var now = new Date();
+        _pendingSmsTxn = {
+            amount: amount, type: isDebit ? 'Expense' : 'Income',
+            merchant: merchant, ref: refM ? refM[1] : '',
+            rawSms: smsBody, date: now.toISOString().slice(0,10),
+            time: (function(){ var h=now.getHours(),m=now.getMinutes(),ap=h>=12?'PM':'AM'; return (h%12||12)+':'+(m<10?'0':'')+m+' '+ap; })()
+        };
+        var banner = document.getElementById('sms-txn-banner');
+        var details = document.getElementById('sms-txn-details');
+        if (banner && details) {
+            var sign = isDebit ? '-' : '+';
+            var color = isDebit ? 'var(--accent-red)' : 'var(--accent-green)';
+            details.innerHTML = '<span style="font-size:15px;font-weight:700;color:'+color+';">'+sign+'₹'+amount.toLocaleString('en-IN')+'</span>'
+                + (merchant ? '  at <b>'+merchant+'</b>' : '') + ' · ' + _pendingSmsTxn.time;
+            banner.style.display = 'block';
+            // Switch to Daily tab so user sees the banner above transactions
+            handleTabClick('daily');
+        }
+    };
+
+    function acceptSmsTxn() {
+        if (!_pendingSmsTxn) return;
+        document.getElementById('sms-txn-banner').style.display = 'none';
+        if(accDatabase.length === 0) { alert("Please add an account first!"); return; }
+        document.getElementById('txnForm').reset();
+        document.getElementById('txnForm').dataset.editId = '';
+        document.querySelector('#txnModal .modal-header h3').innerText = 'Add Transaction';
+        setTxnType(_pendingSmsTxn.type);
+        document.getElementById('txnAmt').value  = _pendingSmsTxn.amount;
+        document.getElementById('txnDate').value = _pendingSmsTxn.date;
+        var now = new Date();
+        document.getElementById('txnTime').value = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+        document.getElementById('txnNote').value = _pendingSmsTxn.merchant || (_pendingSmsTxn.ref ? 'Ref: '+_pendingSmsTxn.ref : (_pendingSmsTxn.type==='Expense'?'Bank Debit':'Bank Credit'));
+        var sel = document.getElementById('txnAcc'); sel.innerHTML = '';
+        accDatabase.forEach(function(acc){ sel.innerHTML += '<option value="'+acc.id+'">'+acc.name+' ('+acc.type+')</option>'; });
+        _pendingSmsTxn = null;
+        handleTabClick('daily');
+        document.getElementById('txnModal').style.display = 'flex';
+    }
+
+    function dismissSmsTxn() { _pendingSmsTxn = null; document.getElementById('sms-txn-banner').style.display = 'none'; }
+
+    // ══════════════════════════════════════════
+    // ── FEATURE 4: PERSONAL TAB
+    // ══════════════════════════════════════════
+    var _personalActiveTab = 'sent';
+
+    function switchPersonalTab(t) {
+        _personalActiveTab = t;
+        document.getElementById('personal-sent').style.display     = t==='sent'     ? 'flex' : 'none';
+        document.getElementById('personal-received').style.display = t==='received' ? 'flex' : 'none';
+        document.getElementById('pt-sent').classList.toggle('active',     t==='sent');
+        document.getElementById('pt-received').classList.toggle('active', t==='received');
+    }
+
+    function renderPersonalTab() { renderPersonalList('sent'); renderPersonalList('received'); checkPersonalAlerts(); }
+
+    function getPersonalCountdown(returnDateStr, returnTimeStr) {
+        if (!returnDateStr) return null;
+        var dt = new Date(returnDateStr + 'T' + (returnTimeStr || '00:00'));
+        var diff = dt - new Date();
+        var days = Math.ceil(diff / 86400000);
+        if (diff < 0)   return { label:'Overdue by '+Math.abs(days)+'d', cls:'rc-overdue' };
+        if (days === 0) return { label:'Return Today!',                   cls:'rc-today'   };
+        if (days === 1) return { label:'Returns Tomorrow',                cls:'rc-soon'    };
+        if (days <= 5)  return { label:'Returns in '+days+' days',        cls:'rc-soon'    };
+        var d = new Date(returnDateStr+'T00:00:00');
+        return { label:'Returns '+d.toLocaleDateString('en-IN',{day:'numeric',month:'short'}), cls:'rc-normal' };
+    }
+
+    var _srcIcon = { PhonePe:'📲', GPay:'💙', Paytm:'🔷', Cash:'💵' };
+
+    function renderPersonalList(type) {
+        var listEl = document.getElementById(type+'-list');
+        var items = personalDatabase.filter(function(p){ return p.type===type; }).sort(function(a,b){ return b.id-a.id; });
+        if (!items.length) { listEl.innerHTML='<p style="text-align:center;color:var(--text-secondary);padding:30px 0;font-size:13px;">No '+type+' transactions yet.</p>'; return; }
+        listEl.innerHTML = items.map(function(p) {
+            var cd = getPersonalCountdown(p.returnDate, p.returnTime);
+            var cdHtml = p.returned ? '<span class="return-countdown rc-done">✅ Returned</span>'
+                       : (cd ? '<span class="return-countdown '+cd.cls+'">⏰ '+cd.label+'</span>' : '');
+            var amtSign = type==='sent' ? '-' : '+';
+            var amtCls  = type==='sent' ? 'sent' : 'received';
+            var dateStr = p.date ? new Date(p.date+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '';
+            var srcCls  = 'src-'+(p.source||'cash').toLowerCase().replace(/\s/g,'');
+            return '<div class="personal-card '+(p.returned?'returned':type)+'">'
+                +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">'
+                +'<div><div style="font-size:15px;font-weight:700;">'+(type==='sent'?'To: ':'From: ')+'<span style="color:var(--accent-blue);">'+p.person+'</span></div>'
+                +'<div style="font-size:12px;color:var(--text-secondary);margin-top:2px;">'+dateStr+(p.time?' · '+p.time:'')+'</div></div>'
+                +'<div class="personal-amount '+amtCls+'">'+amtSign+'₹'+p.amount.toLocaleString('en-IN')+'</div></div>'
+                +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;">'
+                +'<span class="personal-source-badge '+srcCls+'">'+((_srcIcon[p.source]||'💰')+' '+p.source)+'</span>'
+                +(p.purpose?'<span style="font-size:12px;color:var(--text-secondary);">📝 '+p.purpose+'</span>':'')
+                +'</div>'+cdHtml
+                +'<div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">'
+                +(!p.returned&&p.returnDate?'<button class="p-action-btn p-mark-returned" onclick="markPersonalReturned('+p.id+')">✅ Returned</button>':'')
+                +'<button class="p-action-btn p-edit" onclick="openPersonalModal(\''+type+'\','+p.id+')">✏️ Edit</button>'
+                +'<button class="p-action-btn p-delete" onclick="deletePersonalTxn('+p.id+')">🗑 Delete</button>'
+                +'</div></div>';
+        }).join('');
+    }
+
+    function openPersonalModal(type, editId) {
+        var isSent = type==='sent';
+        document.getElementById('personalType').value    = type;
+        document.getElementById('personalEditId').value  = editId || '';
+        document.getElementById('personalModalTitle').innerText = editId ? 'Edit' : (isSent?'💸 Add Sent':'💰 Add Received');
+        document.getElementById('personalPersonLabel').innerText = isSent ? 'To (Recipient)' : 'From (Sender)';
+        document.getElementById('personalReturnLabel').innerText = isSent ? 'Will Return On' : 'To Be Returned By';
+        document.getElementById('personalSaveBtn').innerText = editId ? 'Update' : 'Save';
+        if (editId) {
+            var p = personalDatabase.find(function(x){ return x.id===editId; });
+            if (p) {
+                document.getElementById('personalPerson').value     = p.person     || '';
+                document.getElementById('personalAmount').value     = p.amount     || '';
+                document.getElementById('personalPurpose').value    = p.purpose    || '';
+                document.getElementById('personalDate').value       = p.date       || '';
+                document.getElementById('personalTime').value       = p.rawTime    || '';
+                document.getElementById('personalReturnDate').value = p.returnDate || '';
+                document.getElementById('personalReturnTime').value = p.returnTime || '';
+                setTimeout(function(){ selectSource(p.source || 'PhonePe'); }, 50);
+            }
+        } else {
+            document.getElementById('personalForm').reset();
+            var now = new Date();
+            document.getElementById('personalDate').value = now.toISOString().slice(0,10);
+            document.getElementById('personalTime').value = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+            setTimeout(function(){ selectSource('PhonePe'); }, 50);
+        }
+        document.getElementById('personalModal').style.display = 'flex';
+    }
+
+    function savePersonalTxn(e) {
+        e.preventDefault();
+        var type = document.getElementById('personalType').value;
+        var editId = document.getElementById('personalEditId').value;
+        var rawTime = document.getElementById('personalTime').value;
+        var timeDisplay = '';
+        if (rawTime) { var pt=rawTime.split(':'),h=parseInt(pt[0]),m=pt[1],ap=h>=12?'PM':'AM'; timeDisplay=(h%12||12)+':'+m+' '+ap; }
+        var rec = {
+            id: editId ? parseInt(editId) : Date.now(), type,
+            person:     document.getElementById('personalPerson').value.trim(),
+            amount:     parseFloat(document.getElementById('personalAmount').value) || 0,
+            source:     document.getElementById('personalSource').value,
+            purpose:    document.getElementById('personalPurpose').value.trim(),
+            date:       document.getElementById('personalDate').value,
+            rawTime, time: timeDisplay,
+            returnDate: document.getElementById('personalReturnDate').value,
+            returnTime: document.getElementById('personalReturnTime').value,
+            returned:   false
+        };
+        if (editId) {
+            var idx = personalDatabase.findIndex(function(p){ return p.id===parseInt(editId); });
+            if (idx !== -1) { rec.returned = personalDatabase[idx].returned; personalDatabase[idx] = rec; }
+        } else { personalDatabase.push(rec); }
+        saveToCloud();
+        document.getElementById('personalModal').style.display = 'none';
+        renderPersonalList(type);
+    }
+
+    function deletePersonalTxn(id) {
+        if (!confirm('Delete this transaction?')) return;
+        var t = (personalDatabase.find(function(p){return p.id===id;})||{}).type || 'sent';
+        personalDatabase = personalDatabase.filter(function(p){ return p.id !== id; });
+        saveToCloud(); renderPersonalList(t);
+    }
+
+    function markPersonalReturned(id) {
+        var p = personalDatabase.find(function(x){ return x.id===id; });
+        if (p) { p.returned = true; saveToCloud(); renderPersonalList(p.type); }
+    }
+
+    function checkPersonalAlerts() {
+        var today = new Date(); today.setHours(0,0,0,0);
+        personalDatabase.forEach(function(p) {
+            if (p.returned || !p.returnDate) return;
+            var ret = new Date(p.returnDate+'T00:00:00');
+            var diff = Math.ceil((ret - today) / 86400000);
+            var label = (p.type==='sent'?'Return from ':'Return to ')+p.person+' — ₹'+p.amount.toLocaleString('en-IN');
+            if (diff===0) sendNativeNotif('🔴 Return Due Today!', label+' due today!', 'personal');
+            else if (diff===1) sendNativeNotif('⚠️ Return Due Tomorrow', label+' due tomorrow.', 'personal');
+            else if (diff===3) sendNativeNotif('📅 Return in 3 Days', label+' due in 3 days.', 'personal');
+            else if (diff===5) sendNativeNotif('📅 Return Reminder', label+' due in 5 days.', 'personal');
+        });
     }
 
     // ══════════════════════════════════════════
