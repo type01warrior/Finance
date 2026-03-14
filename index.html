@@ -393,7 +393,10 @@
 
         <div class="section-header" style="margin-top: 10px;">
             <h2>Recent Transactions</h2>
-            <button class="add-btn" onclick="openTxnModal()"><i class="fa-solid fa-plus"></i></button>
+            <div style="display:flex;gap:8px;align-items:center;">
+                <button class="add-btn" onclick="openExportTxnModal()" title="Export Transactions" style="background:var(--input-bg);border:1px solid var(--border-color);"><i class="fa-solid fa-file-export" style="color:var(--accent-blue);font-size:15px;"></i></button>
+                <button class="add-btn" onclick="openTxnModal()"><i class="fa-solid fa-plus"></i></button>
+            </div>
         </div>
         <div id="txn-list"></div>
     </div>
@@ -533,7 +536,7 @@
         <div class="contact-heading">Contact The Developer</div>
         <div class="social-icons">
             <a href="https://www.instagram.com/type01warrior/" target="_blank" class="social-icon ig" title="Instagram"><i class="fa-brands fa-instagram"></i></a>
-            <a href="https://wa.me/919603611435" onclick="event.preventDefault(); window.location.href='https://wa.me/919603611435';" class="social-icon wa" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
+            <a href="#" onclick="event.preventDefault(); openWhatsApp();" class="social-icon wa" title="WhatsApp"><i class="fa-brands fa-whatsapp"></i></a>
         </div>
     </div>
 </div>
@@ -873,6 +876,41 @@
     </div>
 </div>
 
+<!-- EXPORT TRANSACTIONS MODAL -->
+<div class="modal" id="exportTxnModal">
+    <div class="modal-content" style="max-width:400px;">
+        <div class="modal-header">
+            <h3 style="font-size:17px;">📊 Export Transactions</h3>
+            <button class="close-btn" onclick="document.getElementById('exportTxnModal').style.display='none'"><i class="fa-solid fa-times"></i></button>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5;">Select a date range to export your transaction history.</p>
+        <div class="form-row">
+            <div class="form-group">
+                <label>From Date</label>
+                <input type="date" id="exportFromDate">
+            </div>
+            <div class="form-group">
+                <label>To Date</label>
+                <input type="date" id="exportToDate">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Filter by Account</label>
+            <select id="exportAccFilter">
+                <option value="">All Accounts</option>
+            </select>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+            <button onclick="runExport('html')" class="save-btn" style="flex:1;background:linear-gradient(135deg,#5b8def,#a78bfa);">
+                <i class="fa-solid fa-code" style="margin-right:6px;"></i>Export HTML
+            </button>
+            <button onclick="runExport('pdf')" class="save-btn" style="flex:1;background:linear-gradient(135deg,#f97316,#ef4444);">
+                <i class="fa-solid fa-file-pdf" style="margin-right:6px;"></i>Export PDF
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     // ══════════════════════════════════════════════════
     // ★ FIREBASE CONFIG — Replace with YOUR project values
@@ -1153,43 +1191,49 @@
     function getRawNumber(id) { return parseFloat((document.getElementById(id).value || '').replace(/,/g, '')) || 0; }
 
     // --- SMART ROUTING & HARDWARE BACK BUTTON ---
+    // For Android WebView: your Activity's onBackPressed must call:
+    //   webView.evaluateJavascript("window.handleBackPressed()", null);
+    // instead of super.onBackPressed().
+    // The popstate approach below also works as-is in standard WebViews
+    // that call webView.goBack() when canGoBack() is true.
     let currentHistoryLevel = 'home';
-
-    // Seed the history stack with a large buffer so back can never pop out of the app.
-    // We push 30 dummy entries; every popstate immediately pushes one more, keeping the stack full.
-    window.history.replaceState({ _app: true, level: 'home' }, '');
-    for (var _i = 0; _i < 30; _i++) window.history.pushState({ _app: true, level: 'home' }, '');
-
     let _swipeDirection = null;
 
-    // List of modal ids — back closes the topmost open one
     const _modalIds = [
         'emiModal','txnModal','accountModal','bankModal','ccModal',
         'bankDetailModal','copyPopup','updateBalModal','ccBillAmountModal',
-        'appSettingsModal','settingsModal','dataModal','smsParserModal'
+        'appSettingsModal','settingsModal','dataModal','smsParserModal','exportTxnModal'
     ];
     function _getOpenModal() {
         for (let i = _modalIds.length - 1; i >= 0; i--) {
             const el = document.getElementById(_modalIds[i]);
-            if (el && el.style.display === 'flex') return el;
+            if (el && (el.style.display === 'flex' || el.style.display === 'block')) return el;
         }
         return null;
     }
 
-    window.addEventListener('popstate', () => {
-        // Immediately push a new entry so the stack never empties
-        window.history.pushState({ _app: true, level: 'home' }, '');
-
-        // If a modal is open, close it
+    // ── Called by native Android onBackPressed via evaluateJavascript ──
+    window.handleBackPressed = function() {
         const modal = _getOpenModal();
         if (modal) { modal.style.display = 'none'; return; }
-
-        // If on a sub-tab, go back to Daily
         if (currentHistoryLevel === 'sub') {
             currentHistoryLevel = 'home';
             executeTabSwitch('daily');
+            return;
         }
-        // If already on Daily/home — do nothing (app stays open)
+        // On Daily with no modal — ask native to background the app
+        if (window.AndroidBridge && AndroidBridge.goBackground) AndroidBridge.goBackground();
+    };
+
+    // ── Popstate fallback — works when WebView calls webView.goBack() ──
+    (function seedHistory() {
+        window.history.replaceState({ _a: 1 }, '');
+        for (var i = 0; i < 50; i++) window.history.pushState({ _a: 1 }, '');
+    })();
+    window.addEventListener('popstate', function() {
+        // Immediately refill so canGoBack() is always true
+        for (var i = 0; i < 3; i++) window.history.pushState({ _a: 1 }, '');
+        window.handleBackPressed();
     });
 
     function handleTabClick(tabId) {
@@ -3202,6 +3246,174 @@
     setInterval(checkUpcomingAlerts, 60 * 60 * 1000);
 
     // App is initialized via auth.onAuthStateChanged() above — no direct call needed here.
+
+    // ══════════════════════════════════════════
+    // ── WHATSAPP OPENER
+    // ══════════════════════════════════════════
+    function openWhatsApp() {
+        // Try the standard wa.me link — Android system handles the redirect to WhatsApp
+        var url = 'https://wa.me/919603611435';
+        // Create a temporary <a> with target blank and simulate click — some WebViews
+        // route this through shouldOverrideUrlLoading properly, unlike location.href
+        var a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function() { document.body.removeChild(a); }, 500);
+    }
+
+    // ══════════════════════════════════════════
+    // ── EXPORT TRANSACTIONS
+    // ══════════════════════════════════════════
+    function openExportTxnModal() {
+        // Set default dates: 1st of current month → today
+        var today = new Date();
+        var firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById('exportFromDate').value = firstOfMonth.toISOString().slice(0, 10);
+        document.getElementById('exportToDate').value = today.toISOString().slice(0, 10);
+        // Populate account filter
+        var sel = document.getElementById('exportAccFilter');
+        sel.innerHTML = '<option value="">All Accounts</option>';
+        accDatabase.forEach(function(a) {
+            sel.innerHTML += '<option value="' + a.id + '">' + a.name + ' (' + a.type + ')</option>';
+        });
+        document.getElementById('exportTxnModal').style.display = 'flex';
+    }
+
+    function getExportData() {
+        var from = document.getElementById('exportFromDate').value;
+        var to   = document.getElementById('exportToDate').value;
+        var accId = document.getElementById('exportAccFilter').value;
+        if (!from || !to) { alert('Please select both From and To dates.'); return null; }
+        if (from > to)    { alert('From date cannot be after To date.'); return null; }
+        var filtered = txnDatabase.filter(function(t) {
+            if (t.date < from || t.date > to) return false;
+            if (accId && String(t.accountId) !== String(accId)) return false;
+            return true;
+        });
+        filtered.sort(function(a, b) { return b.date.localeCompare(a.date) || b.id - a.id; });
+        return { from: from, to: to, txns: filtered };
+    }
+
+    function buildExportHTML(data, forPrint) {
+        var totalInc = 0, totalExp = 0;
+        data.txns.forEach(function(t) {
+            if (t.type === 'Income') totalInc += t.amount; else totalExp += t.amount;
+        });
+        var net = totalInc - totalExp;
+        var netCol = net >= 0 ? '#22c55e' : '#ef4444';
+
+        // Group by date
+        var groups = {};
+        data.txns.forEach(function(t) {
+            if (!groups[t.date]) groups[t.date] = [];
+            groups[t.date].push(t);
+        });
+
+        var rows = '';
+        Object.keys(groups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(date) {
+            var d = new Date(date + 'T00:00:00');
+            var dateLabel = d.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+            var dayExp = 0, dayInc = 0;
+            groups[date].forEach(function(t){ if(t.type==='Income') dayInc+=t.amount; else dayExp+=t.amount; });
+            rows += '<tr style="background:#1a1a2e;"><td colspan="4" style="padding:8px 12px;font-size:12px;font-weight:700;color:#a0a0a0;border-bottom:1px solid #333;">'
+                  + dateLabel
+                  + (dayExp > 0 ? ' &nbsp;<span style="color:#ef4444;font-size:11px;">-₹' + dayExp.toLocaleString('en-IN') + '</span>' : '')
+                  + (dayInc > 0 ? ' &nbsp;<span style="color:#22c55e;font-size:11px;">+₹' + dayInc.toLocaleString('en-IN') + '</span>' : '')
+                  + '</td></tr>';
+            groups[date].forEach(function(t) {
+                var acc = accDatabase.find(function(a){return a.id===t.accountId;});
+                var accName = acc ? acc.name : 'Unknown';
+                var isInc = t.type === 'Income';
+                rows += '<tr>'
+                     + '<td style="padding:10px 12px;">'
+                     + '<span style="display:inline-block;width:28px;height:28px;border-radius:8px;background:' + (isInc?'rgba(34,197,94,0.15)':'rgba(239,68,68,0.15)') + ';text-align:center;line-height:28px;font-size:12px;">' + (isInc?'↓':'↑') + '</span>'
+                     + '</td>'
+                     + '<td style="padding:10px 8px;"><div style="font-weight:600;font-size:13px;color:#fff;">' + t.note + '</div><div style="font-size:11px;color:#888;">' + (t.time||'') + (t.time?' · ':'') + accName + '</div></td>'
+                     + '<td style="padding:10px 8px;font-size:11px;color:#888;">' + t.type + '</td>'
+                     + '<td style="padding:10px 12px;text-align:right;font-weight:700;font-size:14px;color:' + (isInc?'#22c55e':'#fff') + ';">' + (isInc?'+':'-') + '₹' + t.amount.toLocaleString('en-IN') + '</td>'
+                     + '</tr>';
+            });
+        });
+
+        if (!rows) rows = '<tr><td colspan="4" style="text-align:center;padding:40px;color:#888;">No transactions in this date range.</td></tr>';
+
+        var fromFmt = new Date(data.from+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+        var toFmt   = new Date(data.to  +'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+
+        return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+            + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+            + '<title>Transaction Report</title>'
+            + (forPrint ? '<style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>' : '')
+            + '</head><body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;color:#fff;">'
+            + '<div style="max-width:700px;margin:0 auto;padding:24px 16px;">'
+            + '<div style="background:linear-gradient(135deg,#5b8def,#a78bfa);border-radius:16px;padding:24px;margin-bottom:20px;">'
+            + '<div style="font-size:20px;font-weight:800;letter-spacing:1px;margin-bottom:4px;">💰 FINANCE TRACKER</div>'
+            + '<div style="font-size:13px;opacity:0.8;">Transaction Report · ' + fromFmt + ' – ' + toFmt + '</div>'
+            + '<div style="font-size:11px;opacity:0.65;margin-top:4px;">by Type01warrior</div>'
+            + '</div>'
+            + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">'
+            + '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;text-align:center;">'
+            + '<div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">Income</div>'
+            + '<div style="font-size:18px;font-weight:700;color:#22c55e;">+₹' + totalInc.toLocaleString('en-IN') + '</div></div>'
+            + '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;text-align:center;">'
+            + '<div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">Expense</div>'
+            + '<div style="font-size:18px;font-weight:700;color:#ef4444;">-₹' + totalExp.toLocaleString('en-IN') + '</div></div>'
+            + '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;text-align:center;">'
+            + '<div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">Net</div>'
+            + '<div style="font-size:18px;font-weight:700;color:' + netCol + ';">' + (net>=0?'+':'') + '₹' + net.toLocaleString('en-IN') + '</div></div>'
+            + '</div>'
+            + '<div style="font-size:12px;color:#888;margin-bottom:10px;">' + data.txns.length + ' transactions</div>'
+            + '<table style="width:100%;border-collapse:collapse;background:#1e1e1e;border-radius:12px;overflow:hidden;">'
+            + '<thead><tr style="background:#2a2a2a;">'
+            + '<th style="padding:10px 12px;text-align:left;font-size:11px;color:#888;font-weight:600;width:40px;"></th>'
+            + '<th style="padding:10px 8px;text-align:left;font-size:11px;color:#888;font-weight:600;">NOTE</th>'
+            + '<th style="padding:10px 8px;text-align:left;font-size:11px;color:#888;font-weight:600;">TYPE</th>'
+            + '<th style="padding:10px 12px;text-align:right;font-size:11px;color:#888;font-weight:600;">AMOUNT</th>'
+            + '</tr></thead><tbody>' + rows + '</tbody></table>'
+            + '<div style="text-align:center;margin-top:20px;font-size:11px;color:#555;">Generated on '
+            + new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
+            + '</div></div></body></html>';
+    }
+
+    function runExport(format) {
+        var data = getExportData();
+        if (!data) return;
+        var html = buildExportHTML(data, format === 'pdf');
+        if (format === 'html') {
+            var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            var url  = URL.createObjectURL(blob);
+            var a    = document.createElement('a');
+            a.href   = url;
+            a.download = 'transactions_' + data.from + '_to_' + data.to + '.html';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function() { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+            document.getElementById('exportTxnModal').style.display = 'none';
+        } else {
+            // PDF: open the HTML in a new window/tab and trigger print dialog
+            var win = window.open('', '_blank');
+            if (win) {
+                win.document.write(html);
+                win.document.close();
+                win.onload = function() { win.print(); };
+            } else {
+                // Fallback for WebView: download HTML with PDF-print instruction
+                var blob2 = new Blob([html], { type: 'text/html;charset=utf-8' });
+                var url2  = URL.createObjectURL(blob2);
+                var a2    = document.createElement('a');
+                a2.href   = url2;
+                a2.download = 'transactions_' + data.from + '_to_' + data.to + '_print.html';
+                document.body.appendChild(a2);
+                a2.click();
+                setTimeout(function() { URL.revokeObjectURL(url2); document.body.removeChild(a2); }, 1000);
+                alert('Open the downloaded file in Chrome and use Share → Print to save as PDF.');
+            }
+            document.getElementById('exportTxnModal').style.display = 'none';
+        }
+    }
 </script>
 
 </body>
