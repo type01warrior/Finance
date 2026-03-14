@@ -983,16 +983,32 @@
     function openUpdateBalForCC(ccId) {
         var c = ccDatabase.find(function(x) { return x.id == ccId; });
         if (!c) return;
-        var acc = accDatabase.find(function(a) {
-            return a.name.toLowerCase().includes(c.bankname.toLowerCase()) ||
-                   (c.name && a.name.toLowerCase().includes(c.name.toLowerCase()));
+        // Use same smart matching: prioritise Credit Card type accounts
+        var bestAcc = null, bestScore = 0;
+        accDatabase.forEach(function(a) {
+            var an = a.name.toLowerCase();
+            var bn = (c.bankname || '').toLowerCase();
+            var vn = (c.name || '').toLowerCase();
+            var score = 0;
+            if (an === bn) score = 10;
+            else if (an.includes(bn) || bn.includes(an)) score = 8;
+            else if (vn && (an.includes(vn) || vn.includes(an))) score = 6;
+            else {
+                var fw = bn.replace(/bank|finance|card/g,'').trim().split(' ')[0];
+                if (fw && fw.length > 2 && an.includes(fw)) score = 4;
+            }
+            if (score > 0) {
+                if (a.type === 'Credit Card') score += 5;
+                if (score > bestScore) { bestScore = score; bestAcc = a; }
+            }
         });
-        if (!acc) {
-            acc = { id: Date.now(), name: c.bankname + (c.name ? ' ' + c.name : ''), type: 'Credit Card', initialBalance: 0 };
-            accDatabase.push(acc);
+        if (!bestAcc) {
+            // Create a new account entry linked to this CC
+            bestAcc = { id: Date.now(), name: c.bankname + (c.name ? ' ' + c.name : ''), type: 'Credit Card', initialBalance: 0 };
+            accDatabase.push(bestAcc);
             saveToCloud();
         }
-        openUpdateBalModal(acc.id);
+        openUpdateBalModal(bestAcc.id);
     }
 
     function openCCBillAmountModal(ccId) {
@@ -2251,9 +2267,31 @@
                     + (thisBillAmt ? '<div style="font-size:14px;font-weight:700;color:#fff;">₹' + thisBillAmt.toLocaleString('en-IN') + '</div>'
                                    : '<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.45);">Tap to set</div>');
 
-                var linkedAcc = accDatabase.find(function(a) {
-                    return a.name.toLowerCase().includes(c.bankname.toLowerCase()) ||
-                           (c.name && a.name.toLowerCase().includes(c.name.toLowerCase()));
+                // ── Find the linked Daily-tab account for this CC ──
+                // Priority: 1) Credit Card type account whose name matches CC bankname or variant
+                //           2) Any account type with matching name
+                //           3) Keyword overlap fallback
+                function ccNameMatch(accName, ccBank, ccVariant) {
+                    var an = accName.toLowerCase();
+                    var bn = (ccBank || '').toLowerCase();
+                    var vn = (ccVariant || '').toLowerCase();
+                    if (an === bn) return 10;
+                    if (an.includes(bn) || bn.includes(an)) return 8;
+                    if (vn && (an.includes(vn) || vn.includes(an))) return 6;
+                    // keyword overlap: check if first meaningful word of bankname is in accName
+                    var firstWord = bn.replace(/bank|finance|card/g,'').trim().split(' ')[0];
+                    if (firstWord && firstWord.length > 2 && an.includes(firstWord)) return 4;
+                    return 0;
+                }
+                var linkedAcc = null;
+                var bestScore = 0;
+                accDatabase.forEach(function(a) {
+                    var score = ccNameMatch(a.name, c.bankname, c.name);
+                    if (score > 0) {
+                        // Boost score if account type is Credit Card
+                        if (a.type === 'Credit Card') score += 5;
+                        if (score > bestScore) { bestScore = score; linkedAcc = a; }
+                    }
                 });
                 var cardBal = null;
                 if (linkedAcc) {
@@ -3297,7 +3335,16 @@
         return { from: from, to: to, txns: filtered };
     }
 
-    function buildExportHTML(data, forPrint) {
+    function buildExportHTML(data, isDark) {
+        // Theme colours
+        var bg     = isDark ? '#111111' : '#f5f5f5';
+        var cardBg = isDark ? '#1e1e1e' : '#ffffff';
+        var headBg = isDark ? '#2a2a2a' : '#eeeeee';
+        var rowAlt = isDark ? '#1a1a2e' : '#f0f4ff';
+        var txt    = isDark ? '#ffffff' : '#111111';
+        var txt2   = isDark ? '#a0a0a0' : '#666666';
+        var border = isDark ? '#333333' : '#dddddd';
+
         var totalInc = 0, totalExp = 0;
         data.txns.forEach(function(t) {
             if (t.type === 'Income') totalInc += t.amount; else totalExp += t.amount;
@@ -3305,7 +3352,6 @@
         var net = totalInc - totalExp;
         var netCol = net >= 0 ? '#22c55e' : '#ef4444';
 
-        // Group by date
         var groups = {};
         data.txns.forEach(function(t) {
             if (!groups[t.date]) groups[t.date] = [];
@@ -3315,10 +3361,10 @@
         var rows = '';
         Object.keys(groups).sort(function(a,b){return b.localeCompare(a);}).forEach(function(date) {
             var d = new Date(date + 'T00:00:00');
-            var dateLabel = d.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short', year:'numeric' });
+            var dateLabel = d.toLocaleDateString('en-IN', {weekday:'short',day:'numeric',month:'short',year:'numeric'});
             var dayExp = 0, dayInc = 0;
             groups[date].forEach(function(t){ if(t.type==='Income') dayInc+=t.amount; else dayExp+=t.amount; });
-            rows += '<tr style="background:#1a1a2e;"><td colspan="4" style="padding:8px 12px;font-size:12px;font-weight:700;color:#a0a0a0;border-bottom:1px solid #333;">'
+            rows += '<tr style="background:' + rowAlt + ';"><td colspan="4" style="padding:8px 12px;font-size:12px;font-weight:700;color:' + txt2 + ';border-bottom:1px solid ' + border + ';">'
                   + dateLabel
                   + (dayExp > 0 ? ' &nbsp;<span style="color:#ef4444;font-size:11px;">-₹' + dayExp.toLocaleString('en-IN') + '</span>' : '')
                   + (dayInc > 0 ? ' &nbsp;<span style="color:#22c55e;font-size:11px;">+₹' + dayInc.toLocaleString('en-IN') + '</span>' : '')
@@ -3327,91 +3373,85 @@
                 var acc = accDatabase.find(function(a){return a.id===t.accountId;});
                 var accName = acc ? acc.name : 'Unknown';
                 var isInc = t.type === 'Income';
-                rows += '<tr>'
+                rows += '<tr style="border-bottom:1px solid ' + border + ';">'
                      + '<td style="padding:10px 12px;">'
-                     + '<span style="display:inline-block;width:28px;height:28px;border-radius:8px;background:' + (isInc?'rgba(34,197,94,0.15)':'rgba(239,68,68,0.15)') + ';text-align:center;line-height:28px;font-size:12px;">' + (isInc?'↓':'↑') + '</span>'
+                     + '<span style="display:inline-block;width:28px;height:28px;border-radius:8px;background:' + (isInc?'rgba(34,197,94,0.15)':'rgba(239,68,68,0.15)') + ';text-align:center;line-height:28px;font-size:12px;color:' + (isInc?'#22c55e':'#ef4444') + ';">' + (isInc?'↓':'↑') + '</span>'
                      + '</td>'
-                     + '<td style="padding:10px 8px;"><div style="font-weight:600;font-size:13px;color:#fff;">' + t.note + '</div><div style="font-size:11px;color:#888;">' + (t.time||'') + (t.time?' · ':'') + accName + '</div></td>'
-                     + '<td style="padding:10px 8px;font-size:11px;color:#888;">' + t.type + '</td>'
-                     + '<td style="padding:10px 12px;text-align:right;font-weight:700;font-size:14px;color:' + (isInc?'#22c55e':'#fff') + ';">' + (isInc?'+':'-') + '₹' + t.amount.toLocaleString('en-IN') + '</td>'
+                     + '<td style="padding:10px 8px;"><div style="font-weight:600;font-size:13px;color:' + txt + ';">' + t.note + '</div><div style="font-size:11px;color:' + txt2 + ';">' + (t.time||'') + (t.time?' · ':'') + accName + '</div></td>'
+                     + '<td style="padding:10px 8px;font-size:11px;color:' + txt2 + ';">' + t.type + '</td>'
+                     + '<td style="padding:10px 12px;text-align:right;font-weight:700;font-size:14px;color:' + (isInc?'#22c55e':txt) + ';">' + (isInc?'+':'-') + '₹' + t.amount.toLocaleString('en-IN') + '</td>'
                      + '</tr>';
             });
         });
 
-        if (!rows) rows = '<tr><td colspan="4" style="text-align:center;padding:40px;color:#888;">No transactions in this date range.</td></tr>';
+        if (!rows) rows = '<tr><td colspan="4" style="text-align:center;padding:40px;color:' + txt2 + ';">No transactions in this date range.</td></tr>';
 
         var fromFmt = new Date(data.from+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
         var toFmt   = new Date(data.to  +'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
+        var genDate = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
         return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
             + '<meta name="viewport" content="width=device-width,initial-scale=1">'
             + '<title>Transaction Report</title>'
-            + (forPrint ? '<style>@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}</style>' : '')
-            + '</head><body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;color:#fff;">'
+            + '<style>'
+            + 'body{margin:0;padding:0;background:' + bg + ';font-family:Arial,sans-serif;color:' + txt + ';}'
+            + '@media print{body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}}'
+            + '</style>'
+            + '</head><body>'
             + '<div style="max-width:700px;margin:0 auto;padding:24px 16px;">'
-            + '<div style="background:linear-gradient(135deg,#5b8def,#a78bfa);border-radius:16px;padding:24px;margin-bottom:20px;">'
+            + '<div style="background:linear-gradient(135deg,#5b8def,#a78bfa);border-radius:16px;padding:24px;margin-bottom:20px;color:#fff;">'
             + '<div style="font-size:20px;font-weight:800;letter-spacing:1px;margin-bottom:4px;">💰 FINANCE TRACKER</div>'
-            + '<div style="font-size:13px;opacity:0.8;">Transaction Report · ' + fromFmt + ' – ' + toFmt + '</div>'
+            + '<div style="font-size:13px;opacity:0.85;">Transaction Report &nbsp;·&nbsp; ' + fromFmt + ' – ' + toFmt + '</div>'
             + '<div style="font-size:11px;opacity:0.65;margin-top:4px;">by Type01warrior</div>'
             + '</div>'
             + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">'
-            + '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;text-align:center;">'
-            + '<div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">Income</div>'
+            + '<div style="background:' + cardBg + ';border:1px solid ' + border + ';border-radius:12px;padding:16px;text-align:center;">'
+            + '<div style="font-size:10px;color:' + txt2 + ';text-transform:uppercase;margin-bottom:6px;">Income</div>'
             + '<div style="font-size:18px;font-weight:700;color:#22c55e;">+₹' + totalInc.toLocaleString('en-IN') + '</div></div>'
-            + '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;text-align:center;">'
-            + '<div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">Expense</div>'
+            + '<div style="background:' + cardBg + ';border:1px solid ' + border + ';border-radius:12px;padding:16px;text-align:center;">'
+            + '<div style="font-size:10px;color:' + txt2 + ';text-transform:uppercase;margin-bottom:6px;">Expense</div>'
             + '<div style="font-size:18px;font-weight:700;color:#ef4444;">-₹' + totalExp.toLocaleString('en-IN') + '</div></div>'
-            + '<div style="background:#1e1e1e;border:1px solid #333;border-radius:12px;padding:16px;text-align:center;">'
-            + '<div style="font-size:10px;color:#888;text-transform:uppercase;margin-bottom:6px;">Net</div>'
+            + '<div style="background:' + cardBg + ';border:1px solid ' + border + ';border-radius:12px;padding:16px;text-align:center;">'
+            + '<div style="font-size:10px;color:' + txt2 + ';text-transform:uppercase;margin-bottom:6px;">Net</div>'
             + '<div style="font-size:18px;font-weight:700;color:' + netCol + ';">' + (net>=0?'+':'') + '₹' + net.toLocaleString('en-IN') + '</div></div>'
             + '</div>'
-            + '<div style="font-size:12px;color:#888;margin-bottom:10px;">' + data.txns.length + ' transactions</div>'
-            + '<table style="width:100%;border-collapse:collapse;background:#1e1e1e;border-radius:12px;overflow:hidden;">'
-            + '<thead><tr style="background:#2a2a2a;">'
-            + '<th style="padding:10px 12px;text-align:left;font-size:11px;color:#888;font-weight:600;width:40px;"></th>'
-            + '<th style="padding:10px 8px;text-align:left;font-size:11px;color:#888;font-weight:600;">NOTE</th>'
-            + '<th style="padding:10px 8px;text-align:left;font-size:11px;color:#888;font-weight:600;">TYPE</th>'
-            + '<th style="padding:10px 12px;text-align:right;font-size:11px;color:#888;font-weight:600;">AMOUNT</th>'
+            + '<div style="font-size:12px;color:' + txt2 + ';margin-bottom:10px;">' + data.txns.length + ' transaction' + (data.txns.length!==1?'s':'') + '</div>'
+            + '<table style="width:100%;border-collapse:collapse;background:' + cardBg + ';border-radius:12px;overflow:hidden;border:1px solid ' + border + ';">'
+            + '<thead><tr style="background:' + headBg + ';">'
+            + '<th style="padding:10px 12px;text-align:left;font-size:11px;color:' + txt2 + ';font-weight:600;width:40px;"></th>'
+            + '<th style="padding:10px 8px;text-align:left;font-size:11px;color:' + txt2 + ';font-weight:600;">NOTE</th>'
+            + '<th style="padding:10px 8px;text-align:left;font-size:11px;color:' + txt2 + ';font-weight:600;">TYPE</th>'
+            + '<th style="padding:10px 12px;text-align:right;font-size:11px;color:' + txt2 + ';font-weight:600;">AMOUNT</th>'
             + '</tr></thead><tbody>' + rows + '</tbody></table>'
-            + '<div style="text-align:center;margin-top:20px;font-size:11px;color:#555;">Generated on '
-            + new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})
-            + '</div></div></body></html>';
+            + '<div style="text-align:center;margin-top:20px;font-size:11px;color:' + txt2 + ';">Generated on ' + genDate + '</div>'
+            + '</div></body></html>';
     }
 
     function runExport(format) {
         var data = getExportData();
         if (!data) return;
-        var html = buildExportHTML(data, format === 'pdf');
-        if (format === 'html') {
+        var isDark = !document.body.classList.contains('light-mode');
+        var html = buildExportHTML(data, isDark);
+        var filename = 'transactions_' + data.from + '_to_' + data.to;
+        document.getElementById('exportTxnModal').style.display = 'none';
+
+        if (window.FileSaveBridge) {
+            // Native Android bridge — saves directly to Downloads/Finance Tracker/
+            if (format === 'html') {
+                FileSaveBridge.saveHTML(html, filename);
+            } else {
+                FileSaveBridge.savePDF(html, filename);
+            }
+        } else {
+            // Browser fallback (testing outside app)
             var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
             var url  = URL.createObjectURL(blob);
             var a    = document.createElement('a');
             a.href   = url;
-            a.download = 'transactions_' + data.from + '_to_' + data.to + '.html';
+            a.download = filename + '.html';
             document.body.appendChild(a);
             a.click();
-            setTimeout(function() { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
-            document.getElementById('exportTxnModal').style.display = 'none';
-        } else {
-            // PDF: open the HTML in a new window/tab and trigger print dialog
-            var win = window.open('', '_blank');
-            if (win) {
-                win.document.write(html);
-                win.document.close();
-                win.onload = function() { win.print(); };
-            } else {
-                // Fallback for WebView: download HTML with PDF-print instruction
-                var blob2 = new Blob([html], { type: 'text/html;charset=utf-8' });
-                var url2  = URL.createObjectURL(blob2);
-                var a2    = document.createElement('a');
-                a2.href   = url2;
-                a2.download = 'transactions_' + data.from + '_to_' + data.to + '_print.html';
-                document.body.appendChild(a2);
-                a2.click();
-                setTimeout(function() { URL.revokeObjectURL(url2); document.body.removeChild(a2); }, 1000);
-                alert('Open the downloaded file in Chrome and use Share → Print to save as PDF.');
-            }
-            document.getElementById('exportTxnModal').style.display = 'none';
+            setTimeout(function() { URL.revokeObjectURL(url); document.body.removeChild(a); }, 500);
         }
     }
 </script>
